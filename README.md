@@ -123,5 +123,4 @@ This milestone is considered complete only when the full Oracle dataset is loade
 
 ## Reference
 - [Soofi XYZ Team Kit](https://github.com/soofi-xyz/soofi-xyz-team-kit)
-- [elephant query db usage skill - Soofi XYZ Team Kit](https://github.com/soofi-xyz/soofi-xyz-team-kit/pull/54)
 - [Elephant Oracle Skills](https://github.com/elephant-xyz/skills)
