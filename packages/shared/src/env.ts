@@ -44,7 +44,9 @@ export const envSchema = z.object({
   EMBED_BATCH: z.coerce.number().int().positive().default(192),
   // Parallel Titan calls in flight (Titan embeds one input per call).
   EMBED_CONCURRENCY: z.coerce.number().int().positive().default(8),
-  ANSWER_MODEL_ID: z.string().default("anthropic.claude-sonnet-4-6"),
+  // Cross-region inference-profile id (the plain `anthropic.claude-sonnet-4-6`
+  // is INFERENCE_PROFILE-only and rejects on-demand InvokeModel).
+  ANSWER_MODEL_ID: z.string().default("us.anthropic.claude-sonnet-4-6"),
 
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 });

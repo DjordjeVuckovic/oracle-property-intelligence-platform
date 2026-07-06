@@ -25,7 +25,9 @@
       "@oracle/db": ["./packages/db/src/index.ts"],
       "@oracle/db/*": ["./packages/db/src/*"],
       "@oracle/ingest": ["./packages/ingest/src/index.ts"],
-      "@oracle/ingest/*": ["./packages/ingest/src/*"]
+      "@oracle/ingest/*": ["./packages/ingest/src/*"],
+      "@oracle/query": ["./packages/query/src/index.ts"],
+      "@oracle/query/*": ["./packages/query/src/*"]
     }
   }
 }

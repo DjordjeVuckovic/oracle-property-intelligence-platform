@@ -1,0 +1,22 @@
+{
+  "name": "@oracle/query",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/amazon-bedrock": "^5.0.12",
+    "@aws-sdk/credential-providers": "^3.1079.0",
+    "@oracle/db": "workspace:*",
+    "@oracle/shared": "workspace:*",
+    "ai": "^7.0.15",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.21.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0"
+  }
+}
