@@ -124,68 +124,107 @@ const BUILDERS: Builder[] = [
   {
     entityType: "property",
     map: propertyDoc,
+    // Single-scan aggregations (one hash-agg per child table) joined onto the
+    // enriched property set — avoids per-row correlated subqueries, which are
+    // O(n*m) and hang at full scale.
     query: sql`
+      with perm as (
+        select property_id, count(*) as permit_count,
+          count(*) filter (where improvement_status = 'open') as open_permits,
+          array_agg(distinct improvement_type) filter (where improvement_type is not null) as improvement_types
+        from property_improvements group by property_id
+      ),
+      biz as (
+        select oc.property_id, array_agg(distinct br.entity_name) as businesses
+        from occupancies oc
+        join business_registrations br on br.business_registration_id = oc.business_registration_id
+        group by oc.property_id
+      ),
+      con as (
+        select pi.property_id,
+          array_agg(distinct c.name || ' [BBB ' || coalesce(brp.bbb_rating, 'n/a') || ']') as contractors
+        from property_improvements pi
+        join companies c on c.company_id = pi.contractor_company_id
+        left join business_reputation_profiles brp on brp.company_id = c.company_id
+        where c.name is not null group by pi.property_id
+      ),
+      own as (
+        select distinct on (property_id) property_id, owned_by from ownerships order by property_id
+      ),
+      tx as (
+        select distinct on (property_id) property_id, property_assessed_value_amount as assessed_value
+        from taxes order by property_id, tax_year desc nulls last
+      ),
+      enriched as (select property_id from perm union select property_id from biz)
       select p.property_id as entity_id, p.parcel_identifier,
         a.unnormalized_address as address, a.city_name as city, a.postal_code as zip,
         p.property_type, p.property_usage_type as usage_type, p.property_structure_built_year as built_year,
-        (select o.owned_by from ownerships o where o.property_id = p.property_id limit 1) as owner,
-        (select t.property_assessed_value_amount from taxes t where t.property_id = p.property_id
-           order by t.tax_year desc nulls last limit 1) as assessed_value,
-        (select count(*) from property_improvements pi where pi.property_id = p.property_id) as permit_count,
-        (select count(*) from property_improvements pi where pi.property_id = p.property_id
-           and pi.improvement_status = 'open') as open_permits,
-        (select array_agg(distinct pi.improvement_type) from property_improvements pi
-           where pi.property_id = p.property_id and pi.improvement_type is not null) as improvement_types,
-        (select array_agg(distinct br.entity_name) from occupancies oc
-           join business_registrations br on br.business_registration_id = oc.business_registration_id
-           where oc.property_id = p.property_id) as businesses,
-        (select array_agg(distinct c.name || ' [BBB ' || coalesce(brp.bbb_rating, 'n/a') || ']')
-           from property_improvements pi join companies c on c.company_id = pi.contractor_company_id
-           left join business_reputation_profiles brp on brp.company_id = c.company_id
-           where pi.property_id = p.property_id and c.name is not null) as contractors,
-        p.source_artifact_uri as source_uri
-      from properties p
+        own.owned_by as owner, tx.assessed_value,
+        coalesce(perm.permit_count, 0) as permit_count, coalesce(perm.open_permits, 0) as open_permits,
+        perm.improvement_types, biz.businesses, con.contractors, p.source_artifact_uri as source_uri
+      from enriched e
+      join properties p on p.property_id = e.property_id
       join addresses a on a.address_id = p.address_id
-      where exists (select 1 from property_improvements pi where pi.property_id = p.property_id)
-         or exists (select 1 from occupancies oc where oc.property_id = p.property_id)
+      left join perm on perm.property_id = p.property_id
+      left join biz on biz.property_id = p.property_id
+      left join con on con.property_id = p.property_id
+      left join own on own.property_id = p.property_id
+      left join tx on tx.property_id = p.property_id
     `,
   },
   {
     entityType: "contractor",
     map: contractorDoc,
     query: sql`
+      with worked as (
+        select contractor_company_id as company_id, count(distinct property_id) as properties_worked
+        from property_improvements where contractor_company_id is not null
+        group by contractor_company_id
+      )
       select brp.business_reputation_profile_id as entity_id, brp.name, brp.bbb_rating,
         brp.is_accredited, brp.review_count, brp.complaint_count, cqs.score_band,
-        brp.profile_url as source_uri,
-        (select count(distinct pi.property_id) from property_improvements pi
-           where pi.contractor_company_id = brp.company_id) as properties_worked
+        brp.profile_url as source_uri, worked.properties_worked
       from business_reputation_profiles brp
       left join contractor_quality_scores cqs
         on cqs.business_reputation_profile_id = brp.business_reputation_profile_id
+      left join worked on worked.company_id = brp.company_id
     `,
   },
   {
     entityType: "business",
     map: businessDoc,
     query: sql`
+      with officers as (
+        select business_registration_id, array_agg(distinct name) as officers
+        from business_registration_parties where party_role = 'OFFICER'
+        group by business_registration_id
+      ),
+      locs as (
+        select business_registration_id, count(distinct property_id) as locations
+        from occupancies group by business_registration_id
+      )
       select br.business_registration_id as entity_id, br.entity_name, br.status, br.filing_type,
-        br.filed_date, br.source_artifact_uri as source_uri,
-        (select array_agg(distinct pt.name) from business_registration_parties pt
-           where pt.business_registration_id = br.business_registration_id and pt.party_role = 'OFFICER') as officers,
-        (select count(distinct oc.property_id) from occupancies oc
-           where oc.business_registration_id = br.business_registration_id) as locations
+        br.filed_date, br.source_artifact_uri as source_uri, officers.officers, locs.locations
       from business_registrations br
+      left join officers on officers.business_registration_id = br.business_registration_id
+      left join locs on locs.business_registration_id = br.business_registration_id
     `,
   },
   {
     entityType: "neighborhood",
     map: neighborhoodDoc,
     query: sql`
+      with tx as (
+        select distinct on (property_id) property_id, property_assessed_value_amount::numeric as v
+        from taxes order by property_id, tax_year desc nulls last
+      ),
+      perm as (select distinct property_id from property_improvements)
       select p.subdivision, count(*) as property_count,
-        count(*) filter (where exists (select 1 from property_improvements pi where pi.property_id = p.property_id)) as permit_properties,
-        round(avg((select t.property_assessed_value_amount::numeric from taxes t
-          where t.property_id = p.property_id order by t.tax_year desc nulls last limit 1))) as avg_assessed
+        count(*) filter (where perm.property_id is not null) as permit_properties,
+        round(avg(tx.v)) as avg_assessed
       from properties p
+      left join tx on tx.property_id = p.property_id
+      left join perm on perm.property_id = p.property_id
       where p.subdivision is not null and p.subdivision <> ''
       group by p.subdivision
       having count(*) >= 5
@@ -196,9 +235,10 @@ const BUILDERS: Builder[] = [
 export async function runBuildDocuments(db: Database): Promise<Record<string, number>> {
   const counts: Record<string, number> = {};
   for (const builder of BUILDERS) {
-    logger.info({ entityType: builder.entityType }, "build_documents_started");
+    logger.info({ entityType: builder.entityType }, "build_documents_query_started");
     const result = await db.execute(builder.query);
     const docs = result.rows.map((row) => builder.map(row as DocInput));
+    logger.info({ entityType: builder.entityType, rows: docs.length }, "build_documents_query_done");
     for (let i = 0; i < docs.length; i += 500) {
       const chunk = docs.slice(i, i + 500).map((d) => ({
         documentId: entityId("doc", `${d.entityType}:${d.entityId}`),
@@ -223,6 +263,12 @@ export async function runBuildDocuments(db: Database): Promise<Record<string, nu
             updatedAt: sql`now()`,
           },
         });
+      if ((i / 500) % 20 === 0 && docs.length > 500) {
+        logger.info(
+          { entityType: builder.entityType, upserted: Math.min(i + 500, docs.length), total: docs.length },
+          "build_documents_progress"
+        );
+      }
     }
     counts[builder.entityType] = docs.length;
     logger.info({ entityType: builder.entityType, docs: docs.length }, "build_documents_complete");
