@@ -19,8 +19,7 @@ const DATA_DIR = env.INGEST_DATA_DIR ?? ".data";
 const CID_FILE = env.INGEST_CID_FILE ?? join(DATA_DIR, "enriched-cids.txt");
 const OUT_DIR = join(DATA_DIR, "consolidated");
 const GATEWAYS = (
-  env.IPFS_GATEWAYS ??
-  "https://ipfs.io,https://dweb.link,https://w3s.link,https://ipfs.filebase.io"
+  env.IPFS_GATEWAYS ?? "https://ipfs.io,https://dweb.link,https://w3s.link,https://ipfs.filebase.io"
 )
   .split(",")
   .map((g) => g.trim())
@@ -81,7 +80,10 @@ async function fetchOne(cid) {
 async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
   const raw = await readFile(CID_FILE, "utf8");
-  const cids = raw.split("\n").map((l) => l.trim()).filter(Boolean);
+  const cids = raw
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   log("fetch_started", { total: cids.length, gateways: GATEWAYS, concurrency: CONCURRENCY });
 
   const failures = createWriteStream(LEDGER, { flags: "a" });

@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  classifyPermitStatus,
-  classifyRenovation,
-  extractContractorCompany,
-} from "./derive.js";
+import { classifyPermitStatus, classifyRenovation, extractContractorCompany } from "./derive.js";
 
 describe("classifyPermitStatus", () => {
   it("maps closed-family statuses to closed", () => {
@@ -49,9 +45,9 @@ describe("extractContractorCompany", () => {
     // Heuristic: window around the first company marker up to the legal suffix.
     // It may include a leading token; the value only needs to be stable so the
     // same contractor collapses to one company id across permits.
-    expect(
-      extractContractorCompany("ROBERT S MILLER GRANDE AIRE SERVICES INC P.O.BOX 743")
-    ).toBe("S MILLER GRANDE AIRE SERVICES INC");
+    expect(extractContractorCompany("ROBERT S MILLER GRANDE AIRE SERVICES INC P.O.BOX 743")).toBe(
+      "S MILLER GRANDE AIRE SERVICES INC"
+    );
   });
 
   it("stops at the legal suffix", () => {

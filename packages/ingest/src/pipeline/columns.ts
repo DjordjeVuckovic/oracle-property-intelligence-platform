@@ -42,7 +42,10 @@ export function sqlTableName(rowKey: keyof RowSets): string {
 // Map a Drizzle insert row (camelCase JS keys) to its physical column names
 // (snake_case) so the staged parquet columns line up 1:1 with the Postgres table
 // and the bulk loader can address them by name. Undefined values are dropped.
-export function toDbRow(rowKey: keyof RowSets, row: Record<string, unknown>): Record<string, unknown> {
+export function toDbRow(
+  rowKey: keyof RowSets,
+  row: Record<string, unknown>
+): Record<string, unknown> {
   const columns = getTableColumns(tableFor(rowKey));
   const out: Record<string, unknown> = {};
   for (const [jsKey, value] of Object.entries(row)) {

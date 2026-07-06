@@ -91,7 +91,10 @@ export const ingestionRuns = pgTable("ingestion_runs", {
   status: text("status").notNull().default("running"),
   sourceSystem: text("source_system"),
   sourceUri: text("source_uri"),
-  counts: jsonb("counts").$type<Record<string, number>>().notNull().default(sql`'{}'::jsonb`),
+  counts: jsonb("counts")
+    .$type<Record<string, number>>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
   notes: text("notes"),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
   finishedAt: timestamp("finished_at", { withTimezone: true }),

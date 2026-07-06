@@ -76,7 +76,10 @@ function docKey(entityType: string, entityId: string): string {
 }
 
 function normalizeQuestion(question: string): string {
-  return question.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return question
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 // Deterministic natural-language router: map a question to a canonical inquiry

@@ -208,8 +208,9 @@ export function mapRecord(record: ConsolidatedProperty, cid: string, out: RowSet
     // Contractor company from the first contractor-role contact we can parse.
     let contractorCompanyId: string | null = null;
     permit.contacts.forEach((c, ci) => {
-      const company =
-        CONTRACTOR_ROLES.includes(c.contactRole) ? extractContractorCompany(c.rawName) : null;
+      const company = CONTRACTOR_ROLES.includes(c.contactRole)
+        ? extractContractorCompany(c.rawName)
+        : null;
       let companyId: string | null = null;
       if (company) {
         companyId = idFor.company(company);
@@ -262,7 +263,12 @@ export function mapRecord(record: ConsolidatedProperty, cid: string, out: RowSet
         completedDate: dateStr(ins.completedDate),
         result: ins.result,
         resultComment: ins.resultComment,
-        ...sourceMeta(permitSource, `inspection:${permitKey}:${ins.inspectionNumber ?? ii}`, ins, uri),
+        ...sourceMeta(
+          permitSource,
+          `inspection:${permitKey}:${ins.inspectionNumber ?? ii}`,
+          ins,
+          uri
+        ),
       });
     });
 
@@ -274,7 +280,12 @@ export function mapRecord(record: ConsolidatedProperty, cid: string, out: RowSet
         eventDate: timestampDate(dateStr(event.eventDate)),
         actorName: event.actorName,
         commentText: event.commentText,
-        ...sourceMeta(permitSource, `permit_event:${permitKey}:${event.eventType ?? ei}`, event, uri),
+        ...sourceMeta(
+          permitSource,
+          `permit_event:${permitKey}:${event.eventType ?? ei}`,
+          event,
+          uri
+        ),
       });
     });
 

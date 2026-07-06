@@ -27,7 +27,15 @@ export const RENOVATION_CATEGORIES = {
   roofing: ["roof", "reroof", "re-roof", "shingle", "roofing"],
   electrical: ["electric", "electrical", "wiring", "panel", "service upgrade", "solar"],
   concrete: ["concrete", "foundation", "slab", "footing", "seawall"],
-  structural: ["structural", "structure", "addition", "framing", "load bearing", "demolition", "demo"],
+  structural: [
+    "structural",
+    "structure",
+    "addition",
+    "framing",
+    "load bearing",
+    "demolition",
+    "demo",
+  ],
   plumbing: ["plumb", "plumbing", "sewer", "water heater", "repipe", "re-pipe"],
   hvac: ["hvac", "a/c", "ac ", "air condition", "condenser", "heat pump", "mechanical", "furnace"],
 } as const;

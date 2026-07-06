@@ -35,10 +35,9 @@ export const propertyImprovements = pgTable(
     addressId: uuid("address_id").references(() => addresses.addressId, {
       onDelete: "set null",
     }),
-    contractorCompanyId: uuid("contractor_company_id").references(
-      () => companies.companyId,
-      { onDelete: "set null" },
-    ),
+    contractorCompanyId: uuid("contractor_company_id").references(() => companies.companyId, {
+      onDelete: "set null",
+    }),
     requestIdentifier: text("request_identifier"),
     permitNumber: text("permit_number"),
     improvementType: text("improvement_type"),
@@ -102,24 +101,27 @@ export const propertyImprovements = pgTable(
     updatedAt: updatedAtColumn(),
   },
   (table) => [
-    uniqueIndex("property_improvements_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
+    uniqueIndex("property_improvements_source_record_idx").on(
+      table.sourceSystem,
+      table.sourceRecordKey
+    ),
     index("property_improvements_permit_number_idx")
       .on(table.sourceSystem, table.permitNumber)
       .where(sql`${table.permitNumber} IS NOT NULL`),
     index("property_improvements_dates_idx").on(
       table.applicationReceivedDate,
       table.permitIssueDate,
-      table.permitCloseDate,
+      table.permitCloseDate
     ),
     index("property_improvements_status_idx").on(
       table.improvementStatus,
       table.sourceStatus,
-      table.recordStatus,
+      table.recordStatus
     ),
     index("property_improvements_parcel_idx").on(table.parcelId),
     index("property_improvements_parcel_identifier_idx").on(table.parcelIdentifier),
     index("property_improvements_project_description_idx").on(table.projectDescription),
-  ],
+  ]
 );
 
 export const inspections = pgTable(
@@ -128,7 +130,7 @@ export const inspections = pgTable(
     inspectionId: uuid("inspection_id").primaryKey().defaultRandom(),
     propertyImprovementId: uuid("property_improvement_id").references(
       () => propertyImprovements.propertyImprovementId,
-      { onDelete: "cascade" },
+      { onDelete: "cascade" }
     ),
     inspectionNumber: text("inspection_number"),
     inspectionStatus: text("inspection_status"),
@@ -153,7 +155,7 @@ export const inspections = pgTable(
     uniqueIndex("inspections_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
     index("inspections_permit_date_idx").on(table.permitNumber, table.completedDate),
     index("inspections_identifier_idx").on(table.inspectionIdentifier),
-  ],
+  ]
 );
 
 export const permitContacts = pgTable(
@@ -185,12 +187,9 @@ export const permitContacts = pgTable(
   },
   (table) => [
     uniqueIndex("permit_contacts_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
-    index("permit_contacts_permit_role_idx").on(
-      table.propertyImprovementId,
-      table.contactRole,
-    ),
+    index("permit_contacts_permit_role_idx").on(table.propertyImprovementId, table.contactRole),
     index("permit_contacts_raw_name_idx").on(table.rawName),
-  ],
+  ]
 );
 
 export const permitEvents = pgTable(
@@ -211,11 +210,8 @@ export const permitEvents = pgTable(
   },
   (table) => [
     uniqueIndex("permit_events_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
-    index("permit_events_permit_date_idx").on(
-      table.propertyImprovementId,
-      table.eventDate,
-    ),
-  ],
+    index("permit_events_permit_date_idx").on(table.propertyImprovementId, table.eventDate),
+  ]
 );
 
 export const permitFees = pgTable(
@@ -240,7 +236,7 @@ export const permitFees = pgTable(
   (table) => [
     uniqueIndex("permit_fees_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
     index("permit_fees_permit_idx").on(table.propertyImprovementId),
-  ],
+  ]
 );
 
 export const permitLinks = pgTable(
@@ -267,9 +263,9 @@ export const permitLinks = pgTable(
     uniqueIndex("permit_links_permit_url_idx").on(
       table.propertyImprovementId,
       table.linkKind,
-      table.url,
+      table.url
     ),
-  ],
+  ]
 );
 
 export const permitCustomFields = pgTable(
@@ -288,14 +284,17 @@ export const permitCustomFields = pgTable(
     createdAt: createdAtColumn(),
   },
   (table) => [
-    uniqueIndex("permit_custom_fields_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
+    uniqueIndex("permit_custom_fields_source_record_idx").on(
+      table.sourceSystem,
+      table.sourceRecordKey
+    ),
     uniqueIndex("permit_custom_fields_unique_idx").on(
       table.propertyImprovementId,
       table.fieldGroup,
-      table.fieldName,
+      table.fieldName
     ),
     index("permit_custom_fields_name_value_idx").on(table.fieldName, table.fieldValue),
-  ],
+  ]
 );
 
 export const permitListWindows = pgTable(
@@ -318,7 +317,10 @@ export const permitListWindows = pgTable(
     createdAt: createdAtColumn(),
   },
   (table) => [
-    uniqueIndex("permit_list_windows_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
+    uniqueIndex("permit_list_windows_source_record_idx").on(
+      table.sourceSystem,
+      table.sourceRecordKey
+    ),
     uniqueIndex("permit_list_windows_job_window_idx").on(table.jobId, table.windowKey),
-  ],
+  ]
 );

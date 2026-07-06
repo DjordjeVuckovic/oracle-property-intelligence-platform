@@ -117,7 +117,11 @@ function normalizeDateParts(year: string, month: string, day: string): string | 
   const parsedYear = Number(normalizedYear);
   const parsedMonth = Number(normalizedMonth);
   const parsedDay = Number(normalizedDay);
-  if (!Number.isInteger(parsedYear) || !Number.isInteger(parsedMonth) || !Number.isInteger(parsedDay)) {
+  if (
+    !Number.isInteger(parsedYear) ||
+    !Number.isInteger(parsedMonth) ||
+    !Number.isInteger(parsedDay)
+  ) {
     return null;
   }
   const date = new Date(Date.UTC(parsedYear, parsedMonth - 1, parsedDay));

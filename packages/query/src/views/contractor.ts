@@ -100,7 +100,9 @@ export type ContractorDetail = ContractorCore & {
   relationships: ContractorPropertyRelationRow[];
 };
 
-export async function listContractors(f: Filters): Promise<{ rows: ContractorListRow[]; total: number }> {
+export async function listContractors(
+  f: Filters
+): Promise<{ rows: ContractorListRow[]; total: number }> {
   const db = getDb();
   const where = whereAnd(contractorPredicates(f));
   const rows = await db.execute(sql`

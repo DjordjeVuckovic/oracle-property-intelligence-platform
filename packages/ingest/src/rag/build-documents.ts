@@ -21,7 +21,8 @@ export type BuiltDoc = {
 
 const list = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
-const str = (value: unknown): string | null => (typeof value === "string" && value.length > 0 ? value : null);
+const str = (value: unknown): string | null =>
+  typeof value === "string" && value.length > 0 ? value : null;
 // Safe display coercion for unknown SQL values (always primitives here, but the
 // row type is unknown so this keeps the linter honest about stringification).
 const show = (value: unknown): string => {
@@ -39,14 +40,24 @@ export function propertyDoc(row: DocInput): BuiltDoc {
   const parts = [
     `Property at ${address}${row.city ? `, ${show(row.city)}` : ""}${row.zip ? ` ${show(row.zip)}` : ""}.`,
     `Parcel ${show(row.parcel_identifier)}.`,
-    row.property_type ? `Type: ${show(row.property_type)}${row.usage_type ? ` (${show(row.usage_type)})` : ""}.` : "",
+    row.property_type
+      ? `Type: ${show(row.property_type)}${row.usage_type ? ` (${show(row.usage_type)})` : ""}.`
+      : "",
     row.built_year ? `Built ${show(row.built_year)}.` : "",
     row.owner ? `Owner: ${show(row.owner)}.` : "",
     row.assessed_value ? `Assessed value $${show(row.assessed_value)}.` : "",
-    row.permit_count ? `${show(row.permit_count)} permits (${show(row.open_permits ?? 0)} open).` : "No permits.",
-    list(row.improvement_types).length ? `Improvements: ${list(row.improvement_types).slice(0, 12).join("; ")}.` : "",
-    list(row.businesses).length ? `Businesses at this address: ${list(row.businesses).slice(0, 12).join("; ")}.` : "",
-    list(row.contractors).length ? `Contractors: ${list(row.contractors).slice(0, 12).join("; ")}.` : "",
+    row.permit_count
+      ? `${show(row.permit_count)} permits (${show(row.open_permits ?? 0)} open).`
+      : "No permits.",
+    list(row.improvement_types).length
+      ? `Improvements: ${list(row.improvement_types).slice(0, 12).join("; ")}.`
+      : "",
+    list(row.businesses).length
+      ? `Businesses at this address: ${list(row.businesses).slice(0, 12).join("; ")}.`
+      : "",
+    list(row.contractors).length
+      ? `Contractors: ${list(row.contractors).slice(0, 12).join("; ")}.`
+      : "",
   ];
   return {
     entityType: "property",
@@ -63,7 +74,11 @@ export function contractorDoc(row: DocInput): BuiltDoc {
   const parts = [
     `Contractor ${name}.`,
     row.bbb_rating ? `BBB rating ${show(row.bbb_rating)}.` : "",
-    row.is_accredited === true ? "BBB accredited." : row.is_accredited === false ? "Not BBB accredited." : "",
+    row.is_accredited === true
+      ? "BBB accredited."
+      : row.is_accredited === false
+        ? "Not BBB accredited."
+        : "",
     row.score_band ? `Quality band: ${show(row.score_band)}.` : "",
     `${show(row.review_count ?? 0)} reviews, ${show(row.complaint_count ?? 0)} complaints.`,
     row.properties_worked ? `Linked to ${show(row.properties_worked)} properties via permits.` : "",
@@ -118,7 +133,11 @@ export function neighborhoodDoc(row: DocInput): BuiltDoc {
 
 // --- builders: (entityType, SQL, mapper) ---
 
-type Builder = { entityType: string; query: ReturnType<typeof sql>; map: (row: DocInput) => BuiltDoc };
+type Builder = {
+  entityType: string;
+  query: ReturnType<typeof sql>;
+  map: (row: DocInput) => BuiltDoc;
+};
 
 const BUILDERS: Builder[] = [
   {
@@ -238,7 +257,10 @@ export async function runBuildDocuments(db: Database): Promise<Record<string, nu
     logger.info({ entityType: builder.entityType }, "build_documents_query_started");
     const result = await db.execute(builder.query);
     const docs = result.rows.map((row) => builder.map(row as DocInput));
-    logger.info({ entityType: builder.entityType, rows: docs.length }, "build_documents_query_done");
+    logger.info(
+      { entityType: builder.entityType, rows: docs.length },
+      "build_documents_query_done"
+    );
     for (let i = 0; i < docs.length; i += 500) {
       const chunk = docs.slice(i, i + 500).map((d) => ({
         documentId: entityId("doc", `${d.entityType}:${d.entityId}`),
@@ -265,7 +287,11 @@ export async function runBuildDocuments(db: Database): Promise<Record<string, nu
         });
       if ((i / 500) % 20 === 0 && docs.length > 500) {
         logger.info(
-          { entityType: builder.entityType, upserted: Math.min(i + 500, docs.length), total: docs.length },
+          {
+            entityType: builder.entityType,
+            upserted: Math.min(i + 500, docs.length),
+            total: docs.length,
+          },
           "build_documents_progress"
         );
       }

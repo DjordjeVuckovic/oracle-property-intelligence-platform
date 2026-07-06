@@ -100,7 +100,9 @@ export type BusinessDetail = BusinessCore & {
   permits: BusinessPermitRow[];
 };
 
-export async function listBusinesses(f: Filters): Promise<{ rows: BusinessListRow[]; total: number }> {
+export async function listBusinesses(
+  f: Filters
+): Promise<{ rows: BusinessListRow[]; total: number }> {
   const db = getDb();
   const where = whereAnd(businessPredicates(f));
   const rows = await db.execute(sql`

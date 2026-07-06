@@ -16,9 +16,18 @@ const arr = <T extends z.ZodTypeAny>(item: T) =>
     .nullish()
     .transform((v) => v ?? []);
 
-const str = z.string().nullish().transform((v) => v ?? null);
-const num = z.number().nullish().transform((v) => v ?? null);
-const bool = z.boolean().nullish().transform((v) => v ?? null);
+const str = z
+  .string()
+  .nullish()
+  .transform((v) => v ?? null);
+const num = z
+  .number()
+  .nullish()
+  .transform((v) => v ?? null);
+const bool = z
+  .boolean()
+  .nullish()
+  .transform((v) => v ?? null);
 
 const address = z.object({
   street: str,

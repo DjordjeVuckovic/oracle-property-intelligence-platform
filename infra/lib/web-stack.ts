@@ -92,9 +92,15 @@ export class WebStack extends Stack {
               { name: "DATABASE_USER", value: "oracle" },
               { name: "DATABASE_SSL", value: "require" },
               { name: "AWS_REGION", value: Stack.of(this).region },
-              { name: "EMBED_MODEL_ID", value: process.env.EMBED_MODEL_ID ?? "amazon.titan-embed-text-v2:0" },
+              {
+                name: "EMBED_MODEL_ID",
+                value: process.env.EMBED_MODEL_ID ?? "amazon.titan-embed-text-v2:0",
+              },
               { name: "EMBED_DIMS", value: process.env.EMBED_DIMS ?? "512" },
-              { name: "ANSWER_MODEL_ID", value: process.env.ANSWER_MODEL_ID ?? "us.anthropic.claude-sonnet-4-6" },
+              {
+                name: "ANSWER_MODEL_ID",
+                value: process.env.ANSWER_MODEL_ID ?? "us.anthropic.claude-sonnet-4-6",
+              },
               { name: "LOG_LEVEL", value: process.env.LOG_LEVEL ?? "info" },
             ],
           },

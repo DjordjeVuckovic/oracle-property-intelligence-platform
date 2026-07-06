@@ -58,19 +58,19 @@ export const businessRegistrations = pgTable(
     updatedAt: updatedAtColumn(),
   },
   (table) => [
-    unique("business_registrations_source_record_unique").on(table.sourceSystem, table.sourceRecordKey),
+    unique("business_registrations_source_record_unique").on(
+      table.sourceSystem,
+      table.sourceRecordKey
+    ),
     unique("business_registrations_source_system_document_number_unique").on(
       table.sourceSystem,
-      table.documentNumber,
+      table.documentNumber
     ),
     index("business_registrations_company_idx").on(table.companyId),
     index("business_registrations_entity_name_idx").on(table.entityName),
     index("business_registrations_fei_idx").on(table.feiNumber),
-    index("business_registrations_zip_prefixes_idx").using(
-      "gin",
-      table.matchedZipPrefixes,
-    ),
-  ],
+    index("business_registrations_zip_prefixes_idx").using("gin", table.matchedZipPrefixes),
+  ]
 );
 
 export const businessRegistrationAnnualReports = pgTable(
@@ -91,18 +91,23 @@ export const businessRegistrationAnnualReports = pgTable(
     createdAt: createdAtColumn(),
   },
   (table) => [
-    unique("business_registration_reports_source_record_unique").on(table.sourceSystem, table.sourceRecordKey),
+    unique("business_registration_reports_source_record_unique").on(
+      table.sourceSystem,
+      table.sourceRecordKey
+    ),
     unique("business_registration_reports_unique").on(
       table.businessRegistrationId,
-      table.reportOrdinal,
+      table.reportOrdinal
     ),
-  ],
+  ]
 );
 
 export const businessRegistrationAddresses = pgTable(
   "business_registration_addresses",
   {
-    businessRegistrationAddressId: uuid("business_registration_address_id").primaryKey().defaultRandom(),
+    businessRegistrationAddressId: uuid("business_registration_address_id")
+      .primaryKey()
+      .defaultRandom(),
     businessRegistrationId: uuid("business_registration_id")
       .notNull()
       .references(() => businessRegistrations.businessRegistrationId, { onDelete: "cascade" }),
@@ -129,20 +134,25 @@ export const businessRegistrationAddresses = pgTable(
     updatedAt: updatedAtColumn(),
   },
   (table) => [
-    unique("business_registration_addresses_source_record_unique").on(table.sourceSystem, table.sourceRecordKey),
+    unique("business_registration_addresses_source_record_unique").on(
+      table.sourceSystem,
+      table.sourceRecordKey
+    ),
     unique("business_registration_addresses_role_unique").on(
       table.businessRegistrationId,
-      table.addressRole,
+      table.addressRole
     ),
     index("business_registration_addresses_address_idx").on(table.addressId),
     index("business_registration_addresses_zip_idx").on(table.zip),
-  ],
+  ]
 );
 
 export const businessRegistrationParties = pgTable(
   "business_registration_parties",
   {
-    businessRegistrationPartyId: uuid("business_registration_party_id").primaryKey().defaultRandom(),
+    businessRegistrationPartyId: uuid("business_registration_party_id")
+      .primaryKey()
+      .defaultRandom(),
     businessRegistrationId: uuid("business_registration_id")
       .notNull()
       .references(() => businessRegistrations.businessRegistrationId, { onDelete: "cascade" }),
@@ -180,13 +190,14 @@ export const businessRegistrationParties = pgTable(
     updatedAt: updatedAtColumn(),
   },
   (table) => [
-    unique("business_registration_parties_source_record_unique").on(table.sourceSystem, table.sourceRecordKey),
-    index("business_registration_parties_registration_idx").on(
-      table.businessRegistrationId,
+    unique("business_registration_parties_source_record_unique").on(
+      table.sourceSystem,
+      table.sourceRecordKey
     ),
+    index("business_registration_parties_registration_idx").on(table.businessRegistrationId),
     index("business_registration_parties_name_idx").on(table.name),
     index("business_registration_parties_address_zip_idx").on(table.addressZip),
-  ],
+  ]
 );
 
 export const businessRegistrationEvents = pgTable(
@@ -210,12 +221,15 @@ export const businessRegistrationEvents = pgTable(
     createdAt: createdAtColumn(),
   },
   (table) => [
-    unique("business_registration_events_source_record_unique").on(table.sourceSystem, table.sourceRecordKey),
+    unique("business_registration_events_source_record_unique").on(
+      table.sourceSystem,
+      table.sourceRecordKey
+    ),
     index("business_registration_events_registration_date_idx").on(
       table.businessRegistrationId,
-      table.eventDate,
+      table.eventDate
     ),
-  ],
+  ]
 );
 
 export const sunbizExtractionChunks = pgTable(
@@ -234,11 +248,8 @@ export const sunbizExtractionChunks = pgTable(
   (table) => [
     unique("sunbiz_extraction_chunks_source_record_unique").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
-    unique("sunbiz_extraction_chunks_key_chunk_unique").on(
-      table.extractKey,
-      table.chunkIndex,
-    ),
-  ],
+    unique("sunbiz_extraction_chunks_key_chunk_unique").on(table.extractKey, table.chunkIndex),
+  ]
 );

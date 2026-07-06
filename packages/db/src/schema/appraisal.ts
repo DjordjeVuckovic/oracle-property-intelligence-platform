@@ -42,10 +42,10 @@ export const parcels = pgTable(
     uniqueIndex("parcels_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
     unique("parcels_jurisdiction_key_request_identifier_unique").on(
       table.jurisdictionKey,
-      table.requestIdentifier,
+      table.requestIdentifier
     ),
     index("parcels_identifier_idx").on(table.parcelIdentifier),
-  ],
+  ]
 );
 
 export const properties = pgTable(
@@ -87,7 +87,7 @@ export const properties = pgTable(
     index("properties_parcel_identifier_idx").on(table.parcelIdentifier),
     index("properties_parcel_idx").on(table.parcelId),
     index("properties_address_idx").on(table.addressId),
-  ],
+  ]
 );
 
 export const ownerships = pgTable(
@@ -110,7 +110,7 @@ export const ownerships = pgTable(
     ownedBy: text("owned_by"),
     propertyOwnershipStructure: text("property_ownership_structure"),
     propertyOwnershipStructureOtherDescription: text(
-      "property_ownership_structure_other_description",
+      "property_ownership_structure_other_description"
     ),
     trustInformation: text("trust_information"),
     ownershipPercentage: numeric("ownership_percentage", { precision: 7, scale: 4 }),
@@ -130,9 +130,9 @@ export const ownerships = pgTable(
     index("ownerships_mailing_address_idx").on(table.mailingAddressId),
     check(
       "ownerships_percentage_check",
-      sql`${table.ownershipPercentage} IS NULL OR (${table.ownershipPercentage} >= 0 AND ${table.ownershipPercentage} <= 100)`,
+      sql`${table.ownershipPercentage} IS NULL OR (${table.ownershipPercentage} >= 0 AND ${table.ownershipPercentage} <= 100)`
     ),
-  ],
+  ]
 );
 
 export const taxes = pgTable(
@@ -220,12 +220,9 @@ export const taxes = pgTable(
   },
   (table) => [
     uniqueIndex("taxes_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
-    unique("taxes_property_id_tax_year_unique").on(
-      table.propertyId,
-      table.taxYear,
-    ),
+    unique("taxes_property_id_tax_year_unique").on(table.propertyId, table.taxYear),
     index("taxes_tax_year_idx").on(table.taxYear),
-  ],
+  ]
 );
 
 export const salesHistories = pgTable(
@@ -250,11 +247,8 @@ export const salesHistories = pgTable(
   },
   (table) => [
     uniqueIndex("sales_histories_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
-    index("sales_histories_property_date_idx").on(
-      table.propertyId,
-      table.ownershipTransferDate,
-    ),
-  ],
+    index("sales_histories_property_date_idx").on(table.propertyId, table.ownershipTransferDate),
+  ]
 );
 
 export const propertyValuations = pgTable(
@@ -285,16 +279,16 @@ export const propertyValuations = pgTable(
     updatedAt: updatedAtColumn(),
   },
   (table) => [
-    uniqueIndex("property_valuations_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
-    index("property_valuations_property_date_idx").on(
-      table.propertyId,
-      table.valuationDate,
+    uniqueIndex("property_valuations_source_record_idx").on(
+      table.sourceSystem,
+      table.sourceRecordKey
     ),
+    index("property_valuations_property_date_idx").on(table.propertyId, table.valuationDate),
     check(
       "property_valuations_confidence_score_check",
-      sql`${table.confidenceScore} IS NULL OR (${table.confidenceScore} >= 0 AND ${table.confidenceScore} <= 100)`,
+      sql`${table.confidenceScore} IS NULL OR (${table.confidenceScore} >= 0 AND ${table.confidenceScore} <= 100)`
     ),
-  ],
+  ]
 );
 
 export const factSheets = pgTable(
@@ -315,7 +309,7 @@ export const factSheets = pgTable(
   (table) => [
     uniqueIndex("fact_sheets_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
     index("fact_sheets_property_idx").on(table.propertyId),
-  ],
+  ]
 );
 
 export const geometries = pgTable(
@@ -337,7 +331,7 @@ export const geometries = pgTable(
   (table) => [
     uniqueIndex("geometries_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
     index("geometries_property_idx").on(table.propertyId),
-  ],
+  ]
 );
 
 export const deeds = pgTable(
@@ -362,7 +356,7 @@ export const deeds = pgTable(
     uniqueIndex("deeds_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
     index("deeds_property_idx").on(table.propertyId),
     index("deeds_book_page_idx").on(table.book, table.page),
-  ],
+  ]
 );
 
 export const files = pgTable(
@@ -392,7 +386,7 @@ export const files = pgTable(
     index("files_property_idx").on(table.propertyId),
     index("files_deed_idx").on(table.deedId),
     index("files_original_url_idx").on(table.originalUrl),
-  ],
+  ]
 );
 
 export const structures = pgTable(
@@ -469,7 +463,7 @@ export const structures = pgTable(
   (table) => [
     uniqueIndex("structures_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
     index("structures_property_idx").on(table.propertyId),
-  ],
+  ]
 );
 
 export const floodStormInformation = pgTable(
@@ -497,10 +491,10 @@ export const floodStormInformation = pgTable(
   (table) => [
     uniqueIndex("flood_storm_information_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
     index("flood_storm_information_property_idx").on(table.propertyId),
-  ],
+  ]
 );
 
 export const utilities = pgTable(
@@ -568,7 +562,7 @@ export const utilities = pgTable(
     uniqueIndex("utilities_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
     index("utilities_property_idx").on(table.propertyId),
     index("utilities_layout_idx").on(table.layoutId),
-  ],
+  ]
 );
 
 export const layouts = pgTable(
@@ -646,7 +640,7 @@ export const layouts = pgTable(
       foreignColumns: [table.layoutId],
       name: "layouts_parent_layout_fk",
     }).onDelete("set null"),
-  ],
+  ]
 );
 
 export const lots = pgTable(
@@ -685,5 +679,5 @@ export const lots = pgTable(
   (table) => [
     uniqueIndex("lots_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
     index("lots_property_idx").on(table.propertyId),
-  ],
+  ]
 );

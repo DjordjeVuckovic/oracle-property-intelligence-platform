@@ -41,7 +41,7 @@ Public IPFS, no credentials:
 ## Stack
 
 - Turborepo + pnpm workspaces: `apps/web` (Next.js frontend, Amplify Hosting), `apps/api` (tRPC on Lambda behind API Gateway HTTP API v2), `packages/db` (Drizzle schema + migrations), `packages/ingest` (resumable CLI pipeline), `packages/shared` (Zod contracts, filter grammar).
-- AWS `us-east-2`, CDK is the only IaC (`cdk deploy`; every resource tagged `project_name`): RDS Postgres 16 + pgvector, API stack, Amplify app, Secrets Manager for DB/LLM credentials. pgvector instead of the kit's OpenSearch RAG store is a cost-driven, documented deviation.
+- AWS `us-east-2`, CDK is the only IaC (`cdk deploy`; every resource tagged `project_name`): RDS Postgres 18 + pgvector, API stack, Amplify app, Secrets Manager for DB/LLM credentials. pgvector instead of the kit's OpenSearch RAG store is a cost-driven, documented deviation.
 - TypeScript ESM, strict; no `any`/`as any`. Zod validates env, config, and API inputs (tRPC input schemas).
 - No hardcoded values. Every tunable — model ids, embedding dims, thresholds, batch sizes, concurrency, gateway lists, IPNS names, connection settings — lives in Zod-validated env/config with a documented default in `.env.example`; secrets only via env/Secrets Manager, never in code or logs. New behavior and risky paths ship behind env-driven feature flags (default off/safe), not commented-out code.
 - Drizzle over Postgres. Deterministic UUIDv5 IDs keyed on source identifiers; ingestion is idempotent.

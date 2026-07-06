@@ -40,7 +40,10 @@ export async function runVerify(db: Database): Promise<void> {
       db,
       sql`select count(distinct property_id) from property_improvements`
     ),
-    propertiesWithSunbiz: await scalar(db, sql`select count(distinct property_id) from occupancies`),
+    propertiesWithSunbiz: await scalar(
+      db,
+      sql`select count(distinct property_id) from occupancies`
+    ),
     bbbProfiles: await scalar(db, sql`select count(*) from business_reputation_profiles`),
     reviews: await scalar(db, sql`select count(*) from business_reputation_reviews`),
     complaints: await scalar(db, sql`select count(*) from business_reputation_complaints`),

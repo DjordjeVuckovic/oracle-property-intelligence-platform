@@ -25,13 +25,10 @@ export type HybridSearchOptions = {
 
 // Cache the Bedrock embedding model: creating the provider resolves the AWS
 // credential chain, so build it once for the process rather than per query.
-let cachedEmbeddingModel: ReturnType<
-  ReturnType<typeof createAmazonBedrock>["embedding"]
-> | null = null;
+let cachedEmbeddingModel: ReturnType<ReturnType<typeof createAmazonBedrock>["embedding"]> | null =
+  null;
 
-function getEmbeddingModel(): ReturnType<
-  ReturnType<typeof createAmazonBedrock>["embedding"]
-> {
+function getEmbeddingModel(): ReturnType<ReturnType<typeof createAmazonBedrock>["embedding"]> {
   if (cachedEmbeddingModel === null) {
     const env = loadEnv();
     // Resolve credentials via the AWS SDK provider chain (AWS_PROFILE / SSO /
@@ -115,10 +112,7 @@ function toOrTsQuery(query: string): string {
 // so retrieval still returns real, cited records rather than failing outright.
 // Uses OR semantics over the query terms for recall; an empty term set returns
 // no rows (the caller then answers "no supporting records" honestly).
-export async function ftsSearch(
-  query: string,
-  opts?: HybridSearchOptions
-): Promise<Citation[]> {
+export async function ftsSearch(query: string, opts?: HybridSearchOptions): Promise<Citation[]> {
   const k = opts?.k ?? DEFAULT_K;
   const entityType = opts?.entityType;
   const orQuery = toOrTsQuery(query);
@@ -154,10 +148,7 @@ export async function ftsSearch(
   }));
 }
 
-export async function hybridSearch(
-  query: string,
-  opts?: HybridSearchOptions
-): Promise<Citation[]> {
+export async function hybridSearch(query: string, opts?: HybridSearchOptions): Promise<Citation[]> {
   const k = opts?.k ?? DEFAULT_K;
   const entityType = opts?.entityType;
 

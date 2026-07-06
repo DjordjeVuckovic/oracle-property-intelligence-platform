@@ -84,18 +84,18 @@ export const businessReputationProfiles = pgTable(
   (table) => [
     uniqueIndex("business_reputation_profiles_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
     index("business_reputation_profiles_provider_url_idx").on(table.profileUrl),
     index("business_reputation_profiles_company_idx").on(table.companyId),
     index("business_reputation_profiles_address_idx").on(table.addressId),
     index("business_reputation_profiles_provider_business_idx").on(
       table.provider,
-      table.providerBusinessId,
+      table.providerBusinessId
     ),
     index("business_reputation_profiles_rating_idx").on(table.bbbRating),
     index("business_reputation_profiles_normalized_name_idx").on(table.normalizedName),
-  ],
+  ]
 );
 
 export const businessReputationAlternateNames = pgTable(
@@ -120,13 +120,11 @@ export const businessReputationAlternateNames = pgTable(
   (table) => [
     uniqueIndex("business_reputation_alt_names_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
-    index("business_reputation_alt_names_profile_idx").on(
-      table.businessReputationProfileId,
-    ),
+    index("business_reputation_alt_names_profile_idx").on(table.businessReputationProfileId),
     index("business_reputation_alt_names_normalized_idx").on(table.normalizedName),
-  ],
+  ]
 );
 
 export const businessReputationCategories = pgTable(
@@ -152,13 +150,11 @@ export const businessReputationCategories = pgTable(
   (table) => [
     uniqueIndex("business_reputation_categories_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
-    index("business_reputation_categories_profile_idx").on(
-      table.businessReputationProfileId,
-    ),
+    index("business_reputation_categories_profile_idx").on(table.businessReputationProfileId),
     index("business_reputation_categories_name_idx").on(table.categoryName),
-  ],
+  ]
 );
 
 export const businessReputationRatingReasons = pgTable(
@@ -184,12 +180,10 @@ export const businessReputationRatingReasons = pgTable(
   (table) => [
     uniqueIndex("business_reputation_rating_reasons_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
-    index("business_reputation_rating_reasons_profile_idx").on(
-      table.businessReputationProfileId,
-    ),
-  ],
+    index("business_reputation_rating_reasons_profile_idx").on(table.businessReputationProfileId),
+  ]
 );
 
 export const businessReputationContacts = pgTable(
@@ -220,14 +214,12 @@ export const businessReputationContacts = pgTable(
   (table) => [
     uniqueIndex("business_reputation_contacts_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
-    index("business_reputation_contacts_profile_idx").on(
-      table.businessReputationProfileId,
-    ),
+    index("business_reputation_contacts_profile_idx").on(table.businessReputationProfileId),
     index("business_reputation_contacts_person_idx").on(table.personId),
     index("business_reputation_contacts_name_idx").on(table.normalizedName),
-  ],
+  ]
 );
 
 export const businessReputationLicenses = pgTable(
@@ -257,13 +249,11 @@ export const businessReputationLicenses = pgTable(
   (table) => [
     uniqueIndex("business_reputation_licenses_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
-    index("business_reputation_licenses_profile_idx").on(
-      table.businessReputationProfileId,
-    ),
+    index("business_reputation_licenses_profile_idx").on(table.businessReputationProfileId),
     index("business_reputation_licenses_number_idx").on(table.licenseNumber),
-  ],
+  ]
 );
 
 export const businessReputationServiceAreas = pgTable(
@@ -295,17 +285,12 @@ export const businessReputationServiceAreas = pgTable(
   (table) => [
     uniqueIndex("business_reputation_service_areas_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
-    index("business_reputation_service_areas_profile_idx").on(
-      table.businessReputationProfileId,
-    ),
+    index("business_reputation_service_areas_profile_idx").on(table.businessReputationProfileId),
     index("business_reputation_service_areas_address_idx").on(table.addressId),
-    index("business_reputation_service_areas_state_zip_idx").on(
-      table.stateCode,
-      table.postalCode,
-    ),
-  ],
+    index("business_reputation_service_areas_state_zip_idx").on(table.stateCode, table.postalCode),
+  ]
 );
 
 export const businessReputationLocations = pgTable(
@@ -337,22 +322,18 @@ export const businessReputationLocations = pgTable(
   (table) => [
     uniqueIndex("business_reputation_locations_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
-    index("business_reputation_locations_profile_idx").on(
-      table.businessReputationProfileId,
-    ),
+    index("business_reputation_locations_profile_idx").on(table.businessReputationProfileId),
     index("business_reputation_locations_address_idx").on(table.addressId),
     index("business_reputation_locations_url_idx").on(table.profileUrl),
-  ],
+  ]
 );
 
 export const businessReputationReviews = pgTable(
   "business_reputation_reviews",
   {
-    businessReputationReviewId: uuid("business_reputation_review_id")
-      .primaryKey()
-      .defaultRandom(),
+    businessReputationReviewId: uuid("business_reputation_review_id").primaryKey().defaultRandom(),
     businessReputationProfileId: uuid("business_reputation_profile_id")
       .notNull()
       .references(() => businessReputationProfiles.businessReputationProfileId, {
@@ -375,14 +356,14 @@ export const businessReputationReviews = pgTable(
   (table) => [
     uniqueIndex("business_reputation_reviews_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
     index("business_reputation_reviews_profile_date_idx").on(
       table.businessReputationProfileId,
-      table.reviewDate,
+      table.reviewDate
     ),
     index("business_reputation_reviews_provider_idx").on(table.providerReviewId),
-  ],
+  ]
 );
 
 export const businessReputationComplaints = pgTable(
@@ -415,15 +396,15 @@ export const businessReputationComplaints = pgTable(
   (table) => [
     uniqueIndex("business_reputation_complaints_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
     index("business_reputation_complaints_profile_date_idx").on(
       table.businessReputationProfileId,
-      table.complaintDate,
+      table.complaintDate
     ),
     index("business_reputation_complaints_provider_idx").on(table.providerComplaintId),
     index("business_reputation_complaints_status_idx").on(table.complaintStatus),
-  ],
+  ]
 );
 
 export const businessReputationComplaintEvents = pgTable(
@@ -450,21 +431,19 @@ export const businessReputationComplaintEvents = pgTable(
   (table) => [
     uniqueIndex("business_reputation_complaint_events_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
     index("business_reputation_complaint_events_complaint_date_idx").on(
       table.businessReputationComplaintId,
-      table.eventDate,
+      table.eventDate
     ),
-  ],
+  ]
 );
 
 export const businessReputationMedia = pgTable(
   "business_reputation_media",
   {
-    businessReputationMediaId: uuid("business_reputation_media_id")
-      .primaryKey()
-      .defaultRandom(),
+    businessReputationMediaId: uuid("business_reputation_media_id").primaryKey().defaultRandom(),
     businessReputationProfileId: uuid("business_reputation_profile_id")
       .notNull()
       .references(() => businessReputationProfiles.businessReputationProfileId, {
@@ -484,10 +463,10 @@ export const businessReputationMedia = pgTable(
   (table) => [
     uniqueIndex("business_reputation_media_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
     index("business_reputation_media_profile_idx").on(table.businessReputationProfileId),
-  ],
+  ]
 );
 
 export const businessReputationExternalLinks = pgTable(
@@ -512,26 +491,22 @@ export const businessReputationExternalLinks = pgTable(
   (table) => [
     uniqueIndex("business_reputation_external_links_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
-    index("business_reputation_external_links_profile_idx").on(
-      table.businessReputationProfileId,
-    ),
-  ],
+    index("business_reputation_external_links_profile_idx").on(table.businessReputationProfileId),
+  ]
 );
 
 export const contractorQualityScores = pgTable(
   "contractor_quality_scores",
   {
-    contractorQualityScoreId: uuid("contractor_quality_score_id")
-      .primaryKey()
-      .defaultRandom(),
+    contractorQualityScoreId: uuid("contractor_quality_score_id").primaryKey().defaultRandom(),
     companyId: uuid("company_id").references(() => companies.companyId, {
       onDelete: "set null",
     }),
     businessReputationProfileId: uuid("business_reputation_profile_id").references(
       () => businessReputationProfiles.businessReputationProfileId,
-      { onDelete: "set null" },
+      { onDelete: "set null" }
     ),
     requestIdentifier: text("request_identifier"),
     scoringModel: text("scoring_model").notNull(),
@@ -548,10 +523,10 @@ export const contractorQualityScores = pgTable(
   (table) => [
     uniqueIndex("contractor_quality_scores_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
     index("contractor_quality_scores_company_idx").on(table.companyId),
     index("contractor_quality_scores_profile_idx").on(table.businessReputationProfileId),
     index("contractor_quality_scores_score_idx").on(table.score),
-  ],
+  ]
 );

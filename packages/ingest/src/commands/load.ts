@@ -147,7 +147,11 @@ export async function runLoad(
 ): Promise<void> {
   const [run] = await db
     .insert(schema.ingestionRuns)
-    .values({ stage: "load", sourceSystem: "oracle-open-data", sourceUri: `staging://${opts.runId}` })
+    .values({
+      stage: "load",
+      sourceSystem: "oracle-open-data",
+      sourceUri: `staging://${opts.runId}`,
+    })
     .returning({ id: schema.ingestionRuns.ingestionRunId });
 
   logger.info({ tablesDir: opts.tablesDir }, "load_tables_started");

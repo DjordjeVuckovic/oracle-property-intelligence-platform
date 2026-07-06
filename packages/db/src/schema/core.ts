@@ -36,10 +36,10 @@ export const unnormalizedAddresses = pgTable(
   (table) => [
     uniqueIndex("unnormalized_addresses_source_record_idx").on(
       table.sourceSystem,
-      table.sourceRecordKey,
+      table.sourceRecordKey
     ),
     index("unnormalized_addresses_full_address_idx").on(table.fullAddress),
-  ],
+  ]
 );
 
 export const addresses = pgTable(
@@ -80,20 +80,16 @@ export const addresses = pgTable(
   (table) => [
     uniqueIndex("addresses_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
     index("addresses_postal_code_idx").on(table.postalCode),
-    index("addresses_city_street_idx").on(
-      table.cityName,
-      table.streetName,
-      table.streetNumber,
-    ),
+    index("addresses_city_street_idx").on(table.cityName, table.streetName, table.streetNumber),
     index("addresses_normalized_key_idx").on(table.normalizedAddressKey),
     index("addresses_normalized_hash_idx").on(table.normalizedAddressHash),
     index("addresses_state_zip_hash_idx").on(
       table.stateCode,
       table.postalCode,
-      table.normalizedAddressHash,
+      table.normalizedAddressHash
     ),
     index("addresses_unnormalized_idx").on(table.unnormalizedAddress),
-  ],
+  ]
 );
 
 export const people = pgTable(
@@ -121,7 +117,7 @@ export const people = pgTable(
     uniqueIndex("people_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
     index("people_normalized_name_idx").on(table.normalizedName),
     index("people_full_name_idx").on(table.fullName),
-  ],
+  ]
 );
 
 export const companies = pgTable(
@@ -141,5 +137,5 @@ export const companies = pgTable(
     uniqueIndex("companies_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
     index("companies_normalized_name_idx").on(table.normalizedName),
     index("companies_name_idx").on(table.name),
-  ],
+  ]
 );
