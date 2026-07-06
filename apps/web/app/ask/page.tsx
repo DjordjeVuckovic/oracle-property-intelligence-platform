@@ -1,19 +1,44 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+
+import { answerQuestion } from "@oracle/query";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/app/empty-state";
+import { Badge } from "@/components/ui/badge";
+import { CitationCard } from "@/components/app/citation-card";
+import { Card, CardContent } from "@/components/ui/card";
+import { sourceHref } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Ask" };
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const EXAMPLES = [
-  "Which properties appear likely to be undergoing redevelopment?",
-  "Which contractors consistently perform major renovations without negative BBB indicators?",
-  "Which neighborhoods are showing the strongest redevelopment signals?",
+  "Which contractors have poor BBB ratings?",
+  "Show properties with roofing permits",
+  "Which businesses operate across multiple properties?",
 ];
 
-// TODO(impl): Phase 3 — POST /api/ask: inquiry router → deterministic SQL, else hybrid
-// retrieval → cited answer + evidence panel (CitationCard list).
-export default function AskPage() {
+function entityHref(entityType: string, entityId: string): string {
+  const map: Record<string, string> = {
+    property: "/properties",
+    contractor: "/contractors",
+    business: "/businesses",
+    tenant: "/tenants",
+  };
+  const base = map[entityType];
+  return base ? `${base}/${entityId}` : "#";
+}
+
+export default async function AskPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const question = q?.trim();
+  const result = question ? await answerQuestion(question) : null;
+
   return (
     <div className="mx-auto max-w-[840px] px-6 pb-16">
       <PageHeader
@@ -21,36 +46,74 @@ export default function AskPage() {
         title="Ask the county"
         description="Answers are generated only from retrieved records and always cite their sources."
       />
-      <form className="flex flex-col gap-3">
+      <form className="flex flex-col gap-3" method="get">
         <textarea
-          name="question"
+          name="q"
           rows={3}
+          defaultValue={question ?? ""}
           placeholder="e.g. Show properties with open roofing permits in Cape Coral"
           className="w-full rounded-lg border border-input bg-card px-4 py-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
             {EXAMPLES.map((e) => (
-              <button
+              <Link
                 key={e}
-                type="button"
+                href={`/ask?q=${encodeURIComponent(e)}`}
                 className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary"
               >
                 {e}
-              </button>
+              </Link>
             ))}
           </div>
-          <Button arrow disabled>
+          <Button type="submit" arrow>
             Ask
           </Button>
         </div>
       </form>
-      <div className="mt-8">
-        <EmptyState
-          title="Answer + evidence panel lands here"
-          hint="Cited answer, retrieved records with similarity scores, and links into the entity views."
-        />
-      </div>
+
+      {result ? (
+        <div className="mt-8 space-y-6">
+          <Card>
+            <CardContent className="p-6">
+              <div className="mb-2 flex items-center gap-2">
+                <Badge variant="ink">{result.mode}</Badge>
+                <span className="text-xs text-muted-foreground">
+                  grounded in {result.citations.length} records
+                </span>
+              </div>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">{result.answer}</p>
+            </CardContent>
+          </Card>
+
+          {result.citations.length > 0 ? (
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Citations
+              </h2>
+              <div className="mt-3 grid gap-3">
+                {result.citations.map((c) => (
+                  <CitationCard
+                    key={`${c.entityType}-${c.entityId}`}
+                    citation={{
+                      title: c.label,
+                      entityHref: entityHref(c.entityType, c.entityId),
+                      sourceUrl: sourceHref(c.sourceUrl) ?? "#",
+                      sourceSystem: c.entityType,
+                      score: c.score,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <p className="mt-8 text-sm text-muted-foreground">
+          Ask a question about Lee County properties, permits, contractors, or businesses. Every
+          answer is retrieved from the loaded records and cites its sources.
+        </p>
+      )}
     </div>
   );
 }
