@@ -1,4 +1,4 @@
-import { loadEnv } from "@oracle/shared";
+import { databaseUrlFromEnv, loadEnv } from "@oracle/shared";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool, type PoolConfig } from "pg";
 
@@ -12,7 +12,7 @@ export type Database = NodePgDatabase<typeof schema>;
 export function createPool(overrides: Partial<PoolConfig> = {}): Pool {
   const env = loadEnv();
   return new Pool({
-    connectionString: env.DATABASE_URL,
+    connectionString: databaseUrlFromEnv(env),
     ssl: env.DATABASE_SSL === "require" ? { rejectUnauthorized: false } : false,
     application_name: "oracle-property-intelligence",
     ...overrides,

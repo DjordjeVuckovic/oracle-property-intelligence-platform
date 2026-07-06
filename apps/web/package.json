@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "mkdir -p .next && node -e \"require('fs').writeFileSync('.next/package.json', JSON.stringify({ type: 'commonjs' }))\"",
     "dev": "next dev",
+    "clean:next": "rm -rf .next",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -22,6 +24,7 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",

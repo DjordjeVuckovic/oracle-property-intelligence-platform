@@ -58,6 +58,25 @@ async function embedQuery(query: string): Promise<number[]> {
   return embedding;
 }
 
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
+// Bounded retry with exponential backoff. Bedrock on-demand embedding is
+// rate-limited (ThrottlingException) under load; a couple of short retries let a
+// single user query slip through when capacity is momentarily saturated. Kept
+// small so the request never approaches the page's server-render budget.
+async function embedQueryWithRetry(query: string, attempts = 3): Promise<number[]> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await embedQuery(query);
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts - 1) await sleep(300 * 2 ** attempt);
+    }
+  }
+  throw lastError;
+}
+
 // Format a numeric vector as a pgvector literal string: [n,n,...].
 function toVectorLiteral(vector: number[]): string {
   return `[${vector.join(",")}]`;
@@ -81,6 +100,60 @@ type SearchRow = {
  * only query) every FTS rank is 0, its normalized term coalesces to 0, and the
  * result degrades gracefully to pure vector ordering — no separate code path.
  */
+// Build an OR-joined tsquery lexeme string from free text: keep alphanumeric
+// terms of 3+ chars and join with ` | ` so the query matches documents sharing
+// ANY significant term (recall-oriented) rather than requiring every word. The
+// value is passed as a bound parameter to `to_tsquery`, so it is injection-safe;
+// pure stopwords/short input yields an empty string → caller returns no rows.
+function toOrTsQuery(query: string): string {
+  const terms = query.toLowerCase().match(/[a-z0-9]{3,}/g) ?? [];
+  return [...new Set(terms)].join(" | ");
+}
+
+// Lexical-only fallback: rank documents purely by Postgres full-text relevance,
+// with no embedding call. Used when Bedrock embedding is unavailable (throttled)
+// so retrieval still returns real, cited records rather than failing outright.
+// Uses OR semantics over the query terms for recall; an empty term set returns
+// no rows (the caller then answers "no supporting records" honestly).
+export async function ftsSearch(
+  query: string,
+  opts?: HybridSearchOptions
+): Promise<Citation[]> {
+  const k = opts?.k ?? DEFAULT_K;
+  const entityType = opts?.entityType;
+  const orQuery = toOrTsQuery(query);
+  if (orQuery.length === 0) return [];
+  const db = getDb();
+  const entityFilter = entityType ? sql`and entity_type = ${entityType}` : sql``;
+
+  const result = await db.execute(sql`
+    with matched as (
+      select entity_type, entity_id, title, source_url,
+        ts_rank(
+          to_tsvector('english', title || ' ' || body),
+          to_tsquery('english', ${orQuery})
+        ) as frank
+      from entity_documents
+      where to_tsquery('english', ${orQuery}) @@ to_tsvector('english', title || ' ' || body)
+      ${entityFilter}
+    )
+    select entity_type, entity_id, title, source_url,
+      (frank / nullif(max(frank) over (), 0)) as score
+    from matched
+    order by frank desc
+    limit ${k}
+  `);
+
+  const rows = result.rows as SearchRow[];
+  return rows.map((row) => ({
+    entityType: row.entity_type,
+    entityId: row.entity_id,
+    label: row.title,
+    sourceUrl: row.source_url,
+    score: Number(row.score),
+  }));
+}
+
 export async function hybridSearch(
   query: string,
   opts?: HybridSearchOptions
@@ -88,7 +161,15 @@ export async function hybridSearch(
   const k = opts?.k ?? DEFAULT_K;
   const entityType = opts?.entityType;
 
-  const vectorLiteral = toVectorLiteral(await embedQuery(query));
+  // Embedding is the only external dependency of retrieval. If Bedrock throttles
+  // it (even after retries), degrade to lexical FTS retrieval instead of failing
+  // the whole answer — the results stay real and cited, just ranked by text only.
+  let vectorLiteral: string;
+  try {
+    vectorLiteral = toVectorLiteral(await embedQueryWithRetry(query));
+  } catch {
+    return ftsSearch(query, opts);
+  }
   const db = getDb();
 
   const entityFilter = entityType ? sql`and entity_type = ${entityType}` : sql``;

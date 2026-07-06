@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { PendingSubmit } from "@/components/app/pending-submit";
 
 export type FilterField = {
   name: string;
@@ -7,7 +7,6 @@ export type FilterField = {
   options?: string[]; // select when present, text input otherwise
 };
 
-// TODO(impl): wire to searchParams + inquiry/list queries in Phase 4.
 function FilterBar({ fields }: { fields: FilterField[] }) {
   return (
     <form className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4">
@@ -32,9 +31,9 @@ function FilterBar({ fields }: { fields: FilterField[] }) {
           )}
         </label>
       ))}
-      <Button type="submit" size="sm" variant="outline">
+      <PendingSubmit type="submit" size="sm" variant="outline" pendingLabel="Applying">
         Apply
-      </Button>
+      </PendingSubmit>
     </form>
   );
 }

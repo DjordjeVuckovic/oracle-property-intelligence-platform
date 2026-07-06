@@ -1,95 +1,239 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+
+import { INQUIRIES, runInquiry, parseFilters, type InquiryRow } from "@oracle/query";
 import { PageHeader } from "@/components/app/page-header";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { CitationCard } from "@/components/app/citation-card";
+import { EmptyState } from "@/components/app/empty-state";
+import { Pager } from "@/components/app/pager";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { sourceHref, text } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Insights" };
+export const dynamic = "force-dynamic";
 
-// The 24 required demo inquiries, labels verbatim from ASSIGNMENT.md.
-// TODO(impl): Phase 2 wires each to its deterministic SQL; Run navigates to results.
-const INQUIRY_GROUPS: { group: string; inquiries: string[] }[] = [
-  {
-    group: "Open permits",
-    inquiries: [
-      "Show all properties with more than one open permit.",
-      "Show all properties with open roofing permits.",
-      "Show all properties with open electrical permits.",
-    ],
-  },
-  {
-    group: "Major renovations",
-    inquiries: [
-      "Show all properties that underwent major concrete work.",
-      "Show all properties that underwent major roof replacements.",
-      "Show all properties that underwent major electrical upgrades.",
-      "Show all properties with the highest permit activity during the last five years.",
-      "Show all properties with significant renovation activity.",
-    ],
-  },
-  {
-    group: "Contractors",
-    inquiries: [
-      "Show all contractors performing roofing work in Lee County.",
-      "Show all contractors performing electrical work in Lee County.",
-      "Show contractors with negative BBB ratings.",
-      "Show contractors with complaint histories.",
-      "Show projects completed by contractors with negative BBB ratings or complaint histories.",
-      "Show the most active contractors by project count.",
-    ],
-  },
-  {
-    group: "Footprints & ownership",
-    inquiries: [
-      "Show businesses operating across multiple properties.",
-      "Show owners associated with multiple properties.",
-      "Show tenants operating across multiple locations.",
-      "Show the most active businesses by property footprint.",
-    ],
-  },
-  {
-    group: "Signals & neighborhoods",
-    inquiries: [
-      "Show properties with both ownership changes and active permit activity.",
-      "Show properties with active permit activity and business turnover.",
-      "Show neighborhoods with increasing permit activity.",
-      "Show neighborhoods with the highest concentration of major renovations.",
-    ],
-  },
-  {
-    group: "Relationships & language",
-    inquiries: [
-      "Show relationships between a selected property, contractor, business, tenant, and owner.",
-      "Answer natural-language questions using the RAG layer and return supporting evidence.",
-    ],
-  },
-];
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-export default function InsightsPage() {
+function first(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function hrefFor(params: Record<string, string | string[] | undefined>, inquiry: string): string {
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "inquiry") continue;
+    if (typeof value === "string" && value.length > 0) qs.set(key, value);
+  }
+  qs.set("inquiry", inquiry);
+  return `?${qs.toString()}`;
+}
+
+function cellValue(value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return value.map(cellValue).join(", ");
+  return JSON.stringify(value);
+}
+
+function entityHref(entityType: string, entityId: string): string {
+  const map: Record<string, string> = {
+    property: "/properties",
+    contractor: "/contractors",
+    business: "/businesses",
+    tenant: "/tenants",
+  };
+  const base = map[entityType];
+  return base ? `${base}/${entityId}` : "#";
+}
+
+function renderTable(rows: InquiryRow[]) {
+  if (rows.length === 0) {
+    return <EmptyState title="No rows returned" hint="This inquiry produced no matches." />;
+  }
+
+  const columns = Object.keys(rows[0]).filter((key) => key !== "full_count" && key !== "source_url");
+
   return (
-    <div className="mx-auto max-w-[1200px] px-6 pb-16">
+    <div className="overflow-x-auto rounded-lg border border-border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {columns.map((column) => (
+              <TableHead key={column}>{column.replace(/_/g, " ")}</TableHead>
+            ))}
+            <TableHead>Source</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row, i) => (
+            <TableRow key={i}>
+              {columns.map((column) => {
+                const value = row[column];
+                if (column === "property_id" && typeof value === "string") {
+                  return (
+                    <TableCell key={column}>
+                      <Link className="underline underline-offset-2" href={`/properties/${value}`}>
+                        {text(value)}
+                      </Link>
+                    </TableCell>
+                  );
+                }
+                if (column === "company_id" && typeof value === "string") {
+                  return (
+                    <TableCell key={column}>
+                      <Link className="underline underline-offset-2" href={`/contractors/${value}`}>
+                        {text(value)}
+                      </Link>
+                    </TableCell>
+                  );
+                }
+                if (column === "business_registration_id" && typeof value === "string") {
+                  return (
+                    <TableCell key={column}>
+                      <Link className="underline underline-offset-2" href={`/businesses/${value}`}>
+                        {text(value)}
+                      </Link>
+                    </TableCell>
+                  );
+                }
+                return <TableCell key={column}>{cellValue(value)}</TableCell>;
+              })}
+              <TableCell>
+                {typeof row.source_url === "string" ? (
+                  <a
+                    className="underline underline-offset-2"
+                    href={sourceHref(row.source_url) ?? row.source_url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Source
+                  </a>
+                ) : (
+                  "—"
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+export default async function InsightsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const sp = await searchParams;
+  const inquiryKey = first(sp.inquiry) ?? INQUIRIES[0]?.key;
+  const inquiry = INQUIRIES.find((item) => item.key === inquiryKey) ?? INQUIRIES[0];
+  const filters = parseFilters(sp);
+  const result = inquiry ? await runInquiry(inquiry.key, filters) : null;
+  const pages = result ? Math.max(1, Math.ceil(result.total / filters.pageSize)) : 1;
+
+  return (
+    <div className="mx-auto max-w-[1280px] px-6 pb-16">
       <PageHeader
         eyebrow="Required inquiries"
         title="Insights"
-        description="The canonical inquiry set, one click each — every result computed over real records with citations."
+        description="The canonical inquiry set runs over real records and returns citations for every row."
       />
-      <div className="grid gap-8">
-        {INQUIRY_GROUPS.map((g) => (
-          <section key={g.group}>
-            <h2 className="text-lg">{g.group}</h2>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              {g.inquiries.map((q) => (
-                <Card key={q}>
-                  <CardContent className="flex items-center justify-between gap-4 p-4">
-                    <p className="text-sm font-medium">{q}</p>
-                    <Button size="sm" variant="outline" disabled>
-                      Run
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        ))}
+
+      <div className="grid gap-8 lg:grid-cols-[420px_minmax(0,1fr)]">
+        <aside className="space-y-6">
+          {Array.from(new Set(INQUIRIES.map((item) => item.category))).map((category) => (
+            <section key={category}>
+              <h2 className="text-lg capitalize">{category}</h2>
+              <div className="mt-3 grid gap-3">
+                {INQUIRIES.filter((item) => item.category === category).map((item) => {
+                  const active = item.key === inquiry?.key;
+                  return (
+                    <Card key={item.key} className={active ? "border-primary" : undefined}>
+                      <CardContent className="flex items-start justify-between gap-4 p-4">
+                        <div className="min-w-0">
+                          <CardTitle className="text-sm leading-snug">{item.label}</CardTitle>
+                          <CardDescription className="mt-1 text-xs leading-snug">
+                            {item.description}
+                          </CardDescription>
+                        </div>
+                        <Link
+                          href={hrefFor(sp, item.key)}
+                          className={buttonVariants({ size: "sm", variant: active ? "default" : "outline" })}
+                        >
+                          Run
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </aside>
+
+        <section className="space-y-6">
+          {inquiry ? (
+            <>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="mb-2 flex items-center gap-2">
+                    <Badge variant="ink">{inquiry.category}</Badge>
+                    <span className="text-xs text-muted-foreground">{inquiry.key}</span>
+                  </div>
+                  <h2 className="text-2xl font-bold">{inquiry.label}</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">{inquiry.description}</p>
+                </CardContent>
+              </Card>
+
+              {renderTable(result?.rows ?? [])}
+
+              {result ? (
+                <Pager page={filters.page} pages={pages} total={result.total} params={sp} />
+              ) : null}
+
+              {result && result.citations.length > 0 ? (
+                <div>
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    Citations
+                  </h2>
+                  <div className="mt-3 grid gap-3">
+                    {result.citations.map((c) => (
+                      <CitationCard
+                        key={`${c.entityType}-${c.entityId}`}
+                        citation={{
+                          title: c.label,
+                          entityHref: entityHref(c.entityType, c.entityId),
+                          sourceUrl: sourceHref(c.sourceUrl) ?? "#",
+                          sourceSystem: c.entityType,
+                          score: c.score,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <EmptyState title="No inquiry selected" hint="Choose an inquiry from the left." />
+          )}
+        </section>
       </div>
     </div>
   );

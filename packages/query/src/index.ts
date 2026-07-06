@@ -6,5 +6,6 @@ export * from "./views/tenant.js";
 export * from "./views/business.js";
 export * from "./views/contractor.js";
 export * from "./views/sources.js";
+export * from "./inquiries/index.js";
 export * from "./rag/retrieve.js";
 export * from "./rag/answer.js";

@@ -3,12 +3,17 @@ import { SectionHeader } from "@/components/app/section-header";
 import { StatFlap } from "@/components/app/stat-flap";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 
-// Verified dataset counts (Oracle open-data export, 2026-06-25) — wired to live DB in Phase 4.
+// Loaded dataset counts (Oracle open-data export, 2026-06-25). These mirror the
+// live counts shown on /sources (properties/property_improvements/business_
+// registrations/business_reputation_profiles) so the landing page never
+// contradicts the rest of the app. 480,844 canonical parcels reconcile 511,695
+// source appraiser records.
 const DATASET = {
-  properties: "511,695",
-  permits: "175,594",
-  sunbiz: "42,407",
-  bbb: "8,664",
+  properties: "480,844",
+  sourceRecords: "511,695",
+  permits: "112,431",
+  sunbiz: "57,388",
+  bbb: "870",
 };
 
 const views = [
@@ -47,7 +52,7 @@ export default function HomePage() {
           <div className="mt-8">
             <StatFlap
               value={DATASET.properties}
-              label="provenance-tracked properties, loaded from the Elephant open-data network."
+              label={`canonical, provenance-tracked properties — reconciled from ${DATASET.sourceRecords} Elephant open-data records.`}
             />
           </div>
           <h1 className="mx-auto mt-10 max-w-3xl text-center text-4xl leading-tight md:text-5xl">

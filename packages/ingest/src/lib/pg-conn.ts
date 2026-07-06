@@ -1,4 +1,4 @@
-import { loadEnv } from "@oracle/shared";
+import { databaseUrlFromEnv, loadEnv } from "@oracle/shared";
 
 // Parse DATABASE_URL into libpq connection parameters so the duckdb postgres
 // extension can ATTACH the same database. The password is passed to the duckdb
@@ -14,7 +14,7 @@ export type PgConn = {
 
 export function pgConn(): PgConn {
   const env = loadEnv();
-  const url = new URL(env.DATABASE_URL);
+  const url = new URL(databaseUrlFromEnv(env));
   return {
     host: url.hostname,
     port: url.port || "5432",

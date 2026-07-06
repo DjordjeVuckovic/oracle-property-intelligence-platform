@@ -1,6 +1,7 @@
 import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as rds from "aws-cdk-lib/aws-rds";
+import type * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import type { Construct } from "constructs";
 
 export type DataStackProps = StackProps & {
@@ -17,6 +18,10 @@ export type DataStackProps = StackProps & {
 // is created — cost-driven and sufficient because the payload is public property
 // data. The API Lambda connects over TLS using the secret.
 export class DataStack extends Stack {
+  readonly dbEndpointAddress: string;
+  readonly dbEndpointPort: string;
+  readonly dbSecret: secretsmanager.ISecret;
+
   constructor(scope: Construct, id: string, props: DataStackProps) {
     super(scope, id, props);
 
@@ -56,6 +61,14 @@ export class DataStack extends Stack {
       deletionProtection: false,
       removalPolicy: RemovalPolicy.DESTROY,
     });
+
+    if (!instance.secret) {
+      throw new Error("RDS generated secret is required for the hosted web runtime");
+    }
+
+    this.dbEndpointAddress = instance.dbInstanceEndpointAddress;
+    this.dbEndpointPort = instance.dbInstanceEndpointPort;
+    this.dbSecret = instance.secret;
 
     new CfnOutput(this, "DbEndpoint", { value: instance.dbInstanceEndpointAddress });
     new CfnOutput(this, "DbPort", { value: instance.dbInstanceEndpointPort });

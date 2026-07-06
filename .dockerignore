@@ -1,0 +1,11 @@
+.data
+.env
+.env.*
+.git
+.next
+.turbo
+**/.next
+**/node_modules
+node_modules
+coverage
+infra/cdk.out

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { answerQuestion } from "@oracle/query";
+import { answerQuestion, type Answer } from "@oracle/query";
 import { PageHeader } from "@/components/app/page-header";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CitationCard } from "@/components/app/citation-card";
+import { PendingSubmit } from "@/components/app/pending-submit";
 import { Card, CardContent } from "@/components/ui/card";
 import { sourceHref } from "@/lib/format";
 
@@ -37,7 +37,20 @@ export default async function AskPage({
 }) {
   const { q } = await searchParams;
   const question = q?.trim();
-  const result = question ? await answerQuestion(question) : null;
+  let result: Answer | null = null;
+  if (question) {
+    try {
+      result = await answerQuestion(question);
+    } catch {
+      result = {
+        answer:
+          "The Q&A path could not retrieve supporting records right now because the Bedrock request was throttled or failed. Try again shortly. No claims are made without retrieved source records.",
+        citations: [],
+        evidence: [],
+        mode: "unavailable",
+      };
+    }
+  }
 
   return (
     <div className="mx-auto max-w-[840px] px-6 pb-16">
@@ -60,15 +73,16 @@ export default async function AskPage({
               <Link
                 key={e}
                 href={`/ask?q=${encodeURIComponent(e)}`}
+                prefetch={false}
                 className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary"
               >
                 {e}
               </Link>
             ))}
           </div>
-          <Button type="submit" arrow>
+          <PendingSubmit type="submit" arrow pendingLabel="Searching">
             Ask
-          </Button>
+          </PendingSubmit>
         </div>
       </form>
 

@@ -3,18 +3,31 @@ import { z } from "zod";
 
 // Shared filter grammar applied across list views and inquiries. Every field is
 // optional; the builders below translate present fields into SQL predicates.
+function firstValue(value: unknown): unknown {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function optionalTextFilter() {
+  return z.preprocess((value) => {
+    const v = firstValue(value);
+    if (typeof v !== "string") return v;
+    const trimmed = v.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }, z.string().min(1).optional());
+}
+
 export const filtersSchema = z.object({
-  q: z.string().trim().min(1).optional(),
-  county: z.string().trim().min(1).optional(),
-  municipality: z.string().trim().min(1).optional(),
-  permitType: z.string().trim().min(1).optional(),
-  contractor: z.string().trim().min(1).optional(),
-  propertyClass: z.string().trim().min(1).optional(),
-  businessType: z.string().trim().min(1).optional(),
-  dateFrom: z.string().trim().optional(),
-  dateTo: z.string().trim().optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(25),
+  q: optionalTextFilter(),
+  county: optionalTextFilter(),
+  municipality: optionalTextFilter(),
+  permitType: optionalTextFilter(),
+  contractor: optionalTextFilter(),
+  propertyClass: optionalTextFilter(),
+  businessType: optionalTextFilter(),
+  dateFrom: optionalTextFilter(),
+  dateTo: optionalTextFilter(),
+  page: z.preprocess(firstValue, z.coerce.number().int().min(1).default(1)),
+  pageSize: z.preprocess(firstValue, z.coerce.number().int().min(1).max(100).default(25)),
 });
 
 export type Filters = z.infer<typeof filtersSchema>;
