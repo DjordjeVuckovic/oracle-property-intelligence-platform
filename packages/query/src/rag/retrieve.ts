@@ -102,7 +102,7 @@ type SearchRow = {
 // ANY significant term (recall-oriented) rather than requiring every word. The
 // value is passed as a bound parameter to `to_tsquery`, so it is injection-safe;
 // pure stopwords/short input yields an empty string → caller returns no rows.
-function toOrTsQuery(query: string): string {
+export function toOrTsQuery(query: string): string {
   const terms = query.toLowerCase().match(/[a-z0-9]{3,}/g) ?? [];
   return [...new Set(terms)].join(" | ");
 }

@@ -243,7 +243,7 @@ const ROUTE_RULES: RouteRule[] = [
   },
 ];
 
-function routeCanonicalQuestion(question: string): CanonicalRoute | null {
+export function routeCanonicalQuestion(question: string): CanonicalRoute | null {
   const q = normalizeQuestion(question);
   for (const rule of ROUTE_RULES) {
     if (rule.test(q)) return { inquiryKey: rule.key, reason: rule.reason };
