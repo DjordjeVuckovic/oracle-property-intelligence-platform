@@ -31,6 +31,9 @@ export async function runEmbed(db: Database): Promise<number> {
       model,
       values: rows.map((r) => `${r.title}\n${r.body}`),
       maxParallelCalls: env.EMBED_CONCURRENCY,
+      // Titan v2 returns 1024 dims unless asked; request the configured size so
+      // the vectors match the entity_documents.embedding column.
+      providerOptions: { bedrock: { dimensions: env.EMBED_DIMS, normalize: true } },
     });
 
     for (let i = 0; i < rows.length; i++) {

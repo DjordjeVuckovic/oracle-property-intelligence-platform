@@ -67,7 +67,10 @@ export const entityDocuments = pgTable(
     body: text("body").notNull(),
     sourceUrl: text("source_url"),
     metadata: jsonObjectColumn("metadata"),
-    embedding: vector("embedding", { dimensions: 1024 }),
+    // Titan Text Embeddings v2 at 512 dims (Matryoshka-truncated): ~half the
+    // storage/index cost of 1024 with negligible retrieval-quality loss on these
+    // short factual docs. Must match EMBED_DIMS and the dimensions request option.
+    embedding: vector("embedding", { dimensions: 512 }),
     createdAt: createdAtColumn(),
     updatedAt: updatedAtColumn(),
   },

@@ -37,7 +37,9 @@ export const envSchema = z.object({
   // --- Bedrock (embeddings + answers), via the Vercel AI SDK ---
   AWS_REGION: z.string().default("us-east-2"),
   EMBED_MODEL_ID: z.string().default("amazon.titan-embed-text-v2:0"),
-  EMBED_DIMS: z.coerce.number().int().positive().default(1024),
+  // Titan v2 supports 256/512/1024; must equal the entity_documents.embedding
+  // column dimension. 512 is the cost/quality sweet spot for this corpus.
+  EMBED_DIMS: z.coerce.number().int().positive().default(512),
   EMBED_BATCH: z.coerce.number().int().positive().default(96),
   EMBED_CONCURRENCY: z.coerce.number().int().positive().default(4),
   ANSWER_MODEL_ID: z.string().default("anthropic.claude-sonnet-4-6"),

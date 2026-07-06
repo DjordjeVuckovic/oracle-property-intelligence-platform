@@ -1,0 +1,1 @@
+ALTER TABLE "entity_documents" ALTER COLUMN "embedding" SET DATA TYPE vector(512);

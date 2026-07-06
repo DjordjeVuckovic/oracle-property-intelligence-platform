@@ -8,6 +8,13 @@
       "when": 1783332090107,
       "tag": "0000_bitter_typhoid_mary",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783348612453,
+      "tag": "0001_overrated_jack_power",
+      "breakpoints": true
     }
   ]
 }
