@@ -106,11 +106,13 @@ export function toOrTsQuery(query: string): string {
   return [...new Set(terms)].join(" | ");
 }
 
-// Lexical-only fallback: rank documents purely by Postgres full-text relevance,
-// with no embedding call. Used when Bedrock embedding is unavailable (throttled)
-// so retrieval still returns real, cited records rather than failing outright.
-// Uses OR semantics over the query terms for recall; an empty term set returns
-// no rows (the caller then answers "no supporting records" honestly).
+// Lexical retrieval tier: rank documents purely by Postgres full-text relevance,
+// with no embedding call. This is a first-class retrieval mode — selectable via
+// RETRIEVAL_MODE=lexical, and the automatic tier when embeddings are unavailable
+// — so semantic Q&A returns real, cited records with zero external dependencies
+// (no vector index, no Bedrock). Uses OR semantics over the query terms for
+// recall; an empty term set returns no rows (the caller answers "no supporting
+// records" honestly).
 export async function ftsSearch(query: string, opts?: HybridSearchOptions): Promise<Citation[]> {
   const k = opts?.k ?? DEFAULT_K;
   const entityType = opts?.entityType;
@@ -147,21 +149,16 @@ export async function ftsSearch(query: string, opts?: HybridSearchOptions): Prom
   }));
 }
 
-export async function hybridSearch(query: string, opts?: HybridSearchOptions): Promise<Citation[]> {
+// Vector + FTS fusion given an already-computed query embedding: one SQL blends
+// normalized cosine similarity (~0.6) with normalized full-text rank (~0.4).
+async function vectorFtsSearch(
+  vectorLiteral: string,
+  query: string,
+  opts?: HybridSearchOptions
+): Promise<Citation[]> {
   const k = opts?.k ?? DEFAULT_K;
   const entityType = opts?.entityType;
-
-  // Embedding is the only external dependency of retrieval. If Bedrock throttles
-  // it (even after retries), degrade to lexical FTS retrieval instead of failing
-  // the whole answer — the results stay real and cited, just ranked by text only.
-  let vectorLiteral: string;
-  try {
-    vectorLiteral = toVectorLiteral(await embedQueryWithRetry(query));
-  } catch {
-    return ftsSearch(query, opts);
-  }
   const db = getDb();
-
   const entityFilter = entityType ? sql`and entity_type = ${entityType}` : sql``;
 
   const result = await db.execute(sql`
@@ -202,4 +199,41 @@ export async function hybridSearch(query: string, opts?: HybridSearchOptions): P
     sourceUrl: row.source_url,
     score: Number(row.score),
   }));
+}
+
+// Which retrieval tier actually served a query — surfaced to the UI so the
+// answer is transparent about how its evidence was found.
+export type RetrievalMode = "hybrid" | "lexical";
+export type RetrievalResult = { citations: Citation[]; mode: RetrievalMode };
+
+/**
+ * Tiered retrieval over entity_documents. Returns the citations and the tier that
+ * served them:
+ *
+ *   - "hybrid" — pgvector cosine fused with Postgres full-text rank (needs an
+ *     embedding + a populated vector index).
+ *   - "lexical" — Postgres full-text only, no embedding call. A deliberate,
+ *     always-available tier: force it with RETRIEVAL_MODE=lexical, and it also
+ *     serves automatically when the embedding is unavailable. Either way the
+ *     results are real, cited records — retrieval never hard-fails.
+ */
+export async function retrieve(query: string, opts?: HybridSearchOptions): Promise<RetrievalResult> {
+  const env = loadEnv();
+  if (env.RETRIEVAL_MODE === "lexical") {
+    return { citations: await ftsSearch(query, opts), mode: "lexical" };
+  }
+  try {
+    const vectorLiteral = toVectorLiteral(await embedQueryWithRetry(query));
+    return { citations: await vectorFtsSearch(vectorLiteral, query, opts), mode: "hybrid" };
+  } catch {
+    // Embedding unavailable → serve the lexical tier. Not an error path: the
+    // lexical tier is a supported retrieval mode with the same cited output.
+    return { citations: await ftsSearch(query, opts), mode: "lexical" };
+  }
+}
+
+// Citations-only convenience wrapper over `retrieve` (hybrid tier, lexical when
+// embeddings are unavailable). Callers that need the served tier use `retrieve`.
+export async function hybridSearch(query: string, opts?: HybridSearchOptions): Promise<Citation[]> {
+  return (await retrieve(query, opts)).citations;
 }

@@ -7,7 +7,7 @@ import { getDb } from "../db.js";
 import type { Filters } from "../filters.js";
 import { INQUIRIES, runInquiry, type InquiryRow } from "../inquiries/index.js";
 import type { Citation } from "../provenance.js";
-import { hybridSearch } from "./retrieve.js";
+import { retrieve, type RetrievalMode } from "./retrieve.js";
 
 // Source-cited natural-language answers: retrieve the most relevant entity
 // documents via hybrid search, ground a Bedrock Claude answer strictly in their
@@ -362,19 +362,30 @@ async function generateGroundedAnswer(prompt: string, attempts = 2): Promise<str
   throw lastError;
 }
 
-// Deterministic, fully-cited answer used when the generation model is throttled.
-// It makes no claim beyond "these are the most relevant records" — every listed
-// item is a retrieved record with a citation, so the "no claim without a record"
-// contract holds even with zero model access.
-function renderRetrievalOnlyAnswer(question: string, evidence: Evidence[]): string {
+// Human-readable label for the retrieval tier + whether an LLM composed prose.
+function modeLabel(retrievalMode: RetrievalMode, generated: boolean): string {
+  const tier = retrievalMode === "lexical" ? "lexical retrieval" : "hybrid retrieval";
+  return generated ? `${tier} + generated` : tier;
+}
+
+// Deterministic, fully-cited answer built directly from the retrieved records.
+// Served whenever no LLM composes prose (RETRIEVAL_MODE with no answer model, or
+// the answer model unavailable). It makes no claim beyond "these are the most
+// relevant records" — every listed item is a retrieved record with a citation,
+// so the "no claim without a record" contract holds with zero model access.
+function renderRetrievalOnlyAnswer(
+  question: string,
+  evidence: Evidence[],
+  retrievalMode: RetrievalMode
+): string {
+  const tier = retrievalMode === "lexical" ? "full-text (lexical)" : "hybrid";
   const bullets = evidence
     .slice(0, 6)
     .map((e, i) => `${i + 1}. ${e.title}`)
     .join("\n");
   return (
-    `The answer model is rate-limited right now, so this is a retrieval-only ` +
-    `result: the ${evidence.length} most relevant records for "${question}", ` +
-    `each cited below with its source.\n${bullets}`
+    `Retrieval mode: ${tier}. The ${evidence.length} most relevant records for ` +
+    `"${question}", each cited below with its source.\n${bullets}`
   );
 }
 
@@ -388,45 +399,34 @@ export async function answerQuestion(question: string): Promise<Answer> {
   const route = routeCanonicalQuestion(question);
   if (route) return answerViaInquiry(route);
 
-  const citations = await hybridSearch(question, { k: RETRIEVAL_K });
+  const { citations, mode: retrievalMode } = await retrieve(question, { k: RETRIEVAL_K });
+  const noRecords = {
+    answer:
+      "No supporting records were found for this question in the Lee County " +
+      "property, permit, business, or contractor data.",
+    citations: [],
+    evidence: [],
+    mode: modeLabel(retrievalMode, false),
+  } satisfies Answer;
 
-  if (citations.length === 0) {
-    return {
-      answer:
-        "No supporting records were found for this question in the Lee County " +
-        "property, permit, business, or contractor data.",
-      citations: [],
-      evidence: [],
-      mode: "semantic",
-    };
-  }
+  if (citations.length === 0) return noRecords;
 
   const evidence = await fetchEvidence(citations);
-
-  if (evidence.length === 0) {
-    return {
-      answer:
-        "No supporting records were found for this question in the Lee County " +
-        "property, permit, business, or contractor data.",
-      citations: [],
-      evidence: [],
-      mode: "semantic",
-    };
-  }
+  if (evidence.length === 0) return noRecords;
 
   const prompt = `Question: ${question}\n\nRecords:\n${renderEvidence(evidence)}`;
   try {
     const text = await generateGroundedAnswer(prompt);
-    return { answer: text, citations, evidence, mode: "semantic" };
+    return { answer: text, citations, evidence, mode: modeLabel(retrievalMode, true) };
   } catch {
-    // Generation model unavailable (throttled). Retrieval still succeeded, so
-    // return the retrieved records as a deterministic, cited answer instead of
-    // failing — honest degradation, no fabricated prose.
+    // No answer model available. Retrieval still returned real, cited records, so
+    // serve them as a deterministic cited answer — the lexical/hybrid tier is a
+    // supported mode, not a failure. No fabricated prose.
     return {
-      answer: renderRetrievalOnlyAnswer(question, evidence),
+      answer: renderRetrievalOnlyAnswer(question, evidence, retrievalMode),
       citations,
       evidence,
-      mode: "retrieval-only",
+      mode: modeLabel(retrievalMode, false),
     };
   }
 }

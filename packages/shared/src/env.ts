@@ -60,6 +60,15 @@ export const envSchema = z
     // is INFERENCE_PROFILE-only and rejects on-demand InvokeModel).
     ANSWER_MODEL_ID: z.string().default("us.anthropic.claude-sonnet-4-6"),
 
+    // Retrieval tier for /ask:
+    //   hybrid  = pgvector cosine fused with Postgres full-text rank (default).
+    //   lexical = Postgres full-text only — no embedding call, no vector index,
+    //             zero external dependencies. A first-class, always-available
+    //             tier: select it explicitly here, and it is also the automatic
+    //             tier when embeddings are unavailable. Either way retrieval
+    //             returns real, cited records, so semantic Q&A never hard-fails.
+    RETRIEVAL_MODE: z.enum(["hybrid", "lexical"]).default("hybrid"),
+
     // --- Cross-account Bedrock (optional; single-account by default) ---
     // When the app's own account has no on-demand Bedrock quota, point Bedrock at
     // a Bedrock-enabled account: the app's ambient identity (App Runner instance
