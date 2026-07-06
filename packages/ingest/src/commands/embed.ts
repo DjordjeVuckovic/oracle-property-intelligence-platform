@@ -27,6 +27,8 @@ export async function runEmbed(db: Database): Promise<number> {
     if (batch.rows.length === 0) break;
 
     const rows = batch.rows as { document_id: string; title: string; body: string }[];
+    // Titan v2 has no batch endpoint (one input per call), so embedMany fans out
+    // the batch and parallelizes it — concurrency, not batch size, is the lever.
     const { embeddings } = await embedMany({
       model,
       values: rows.map((r) => `${r.title}\n${r.body}`),
@@ -36,13 +38,16 @@ export async function runEmbed(db: Database): Promise<number> {
       providerOptions: { bedrock: { dimensions: env.EMBED_DIMS, normalize: true } },
     });
 
-    for (let i = 0; i < rows.length; i++) {
-      const vector = `[${embeddings[i]!.join(",")}]`;
-      await db.execute(
-        sql`update entity_documents set embedding = ${vector}::vector, updated_at = now()
-            where document_id = ${rows[i]!.document_id}`
-      );
-    }
+    // Write the whole batch in ONE statement (UPDATE ... FROM VALUES) instead of
+    // N round-trips to Postgres.
+    const tuples = rows.map(
+      (r, i) => sql`(${r.document_id}::uuid, ${`[${embeddings[i]!.join(",")}]`}::vector)`
+    );
+    await db.execute(sql`
+      update entity_documents d set embedding = v.emb, updated_at = now()
+      from (values ${sql.join(tuples, sql`, `)}) as v(id, emb)
+      where d.document_id = v.id
+    `);
     embedded += rows.length;
     logger.info({ embedded }, "embed_progress");
   }

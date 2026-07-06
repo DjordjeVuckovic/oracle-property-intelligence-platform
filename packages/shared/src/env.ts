@@ -40,8 +40,10 @@ export const envSchema = z.object({
   // Titan v2 supports 256/512/1024; must equal the entity_documents.embedding
   // column dimension. 512 is the cost/quality sweet spot for this corpus.
   EMBED_DIMS: z.coerce.number().int().positive().default(512),
-  EMBED_BATCH: z.coerce.number().int().positive().default(96),
-  EMBED_CONCURRENCY: z.coerce.number().int().positive().default(4),
+  // Docs pulled + written per round; each round issues one bulk UPDATE.
+  EMBED_BATCH: z.coerce.number().int().positive().default(192),
+  // Parallel Titan calls in flight (Titan embeds one input per call).
+  EMBED_CONCURRENCY: z.coerce.number().int().positive().default(8),
   ANSWER_MODEL_ID: z.string().default("anthropic.claude-sonnet-4-6"),
 
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
