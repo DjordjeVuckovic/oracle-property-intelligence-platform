@@ -1,6 +1,5 @@
 import { createAmazonBedrock } from "@ai-sdk/amazon-bedrock";
-import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
-import { loadEnv } from "@oracle/shared";
+import { bedrockCredentialProvider, bedrockRegion, loadEnv } from "@oracle/shared";
 import { generateText } from "ai";
 import { sql } from "drizzle-orm";
 
@@ -61,8 +60,8 @@ function getAnswerModel(): ReturnType<ReturnType<typeof createAmazonBedrock>> {
   if (cachedAnswerModel === null) {
     const env = loadEnv();
     const bedrock = createAmazonBedrock({
-      region: env.AWS_REGION,
-      credentialProvider: fromNodeProviderChain(),
+      region: bedrockRegion(),
+      credentialProvider: bedrockCredentialProvider(),
     });
     cachedAnswerModel = bedrock(env.ANSWER_MODEL_ID);
   }

@@ -184,6 +184,9 @@ importers:
 
   packages/shared:
     dependencies:
+      '@aws-sdk/credential-providers':
+        specifier: ^3.1079.0
+        version: 3.1079.0
       pino:
         specifier: ^10.3.1
         version: 10.3.1

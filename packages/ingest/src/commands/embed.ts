@@ -1,7 +1,6 @@
 import { createAmazonBedrock } from "@ai-sdk/amazon-bedrock";
-import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
 import type { Database } from "@oracle/db";
-import { loadEnv, logger } from "@oracle/shared";
+import { bedrockCredentialProvider, bedrockRegion, loadEnv, logger } from "@oracle/shared";
 import { embedMany } from "ai";
 import { sql } from "drizzle-orm";
 
@@ -14,8 +13,8 @@ export async function runEmbed(db: Database): Promise<number> {
   // Resolve credentials via the AWS SDK provider chain so profile/SSO/assumed-role
   // (e.g. AWS_PROFILE) work — the Bedrock provider does not do this on its own.
   const bedrock = createAmazonBedrock({
-    region: env.AWS_REGION,
-    credentialProvider: fromNodeProviderChain(),
+    region: bedrockRegion(),
+    credentialProvider: bedrockCredentialProvider(),
   });
   const model = bedrock.embedding(env.EMBED_MODEL_ID);
 

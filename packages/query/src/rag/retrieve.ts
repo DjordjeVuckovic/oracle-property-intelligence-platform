@@ -1,6 +1,5 @@
 import { createAmazonBedrock } from "@ai-sdk/amazon-bedrock";
-import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
-import { loadEnv } from "@oracle/shared";
+import { bedrockCredentialProvider, bedrockRegion, loadEnv } from "@oracle/shared";
 import { embed } from "ai";
 import { sql } from "drizzle-orm";
 
@@ -34,8 +33,8 @@ function getEmbeddingModel(): ReturnType<ReturnType<typeof createAmazonBedrock>[
     // Resolve credentials via the AWS SDK provider chain (AWS_PROFILE / SSO /
     // assumed-role) — the Bedrock provider does not do this on its own.
     const bedrock = createAmazonBedrock({
-      region: env.AWS_REGION,
-      credentialProvider: fromNodeProviderChain(),
+      region: bedrockRegion(),
+      credentialProvider: bedrockCredentialProvider(),
     });
     cachedEmbeddingModel = bedrock.embedding(env.EMBED_MODEL_ID);
   }

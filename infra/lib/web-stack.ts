@@ -48,6 +48,22 @@ export class WebStack extends Stack {
       })
     );
 
+    // Optional cross-account Bedrock: when a target role is configured, let the
+    // instance role assume it so the app can invoke Bedrock in another account.
+    // Set BEDROCK_ASSUME_ROLE_ARN (+ BEDROCK_REGION) in the shell before
+    // `cdk deploy`; leave them unset to use this account's own Bedrock.
+    const bedrockAssumeRoleArn = process.env.BEDROCK_ASSUME_ROLE_ARN?.trim();
+    const bedrockExternalId = process.env.BEDROCK_ASSUME_ROLE_EXTERNAL_ID?.trim();
+    const bedrockRegion = process.env.BEDROCK_REGION?.trim();
+    if (bedrockAssumeRoleArn) {
+      instanceRole.addToPolicy(
+        new iam.PolicyStatement({
+          actions: ["sts:AssumeRole"],
+          resources: [bedrockAssumeRoleArn],
+        })
+      );
+    }
+
     const dbPassword = new secretsmanager.Secret(this, "WebDbPassword", {
       secretName: `${props.projectName}/web-db-password`,
       secretStringValue: SecretValue.unsafePlainText(
@@ -55,6 +71,44 @@ export class WebStack extends Stack {
       ),
     });
     dbPassword.grantRead(instanceRole);
+
+    const runtimeEnvironmentVariables: apprunner.CfnService.KeyValuePairProperty[] = [
+      { name: "NODE_ENV", value: "production" },
+      { name: "NEXT_TELEMETRY_DISABLED", value: "1" },
+      { name: "DATABASE_HOST", value: props.dbEndpointAddress },
+      { name: "DATABASE_PORT", value: props.dbEndpointPort },
+      { name: "DATABASE_NAME", value: "oracle" },
+      { name: "DATABASE_USER", value: "oracle" },
+      { name: "DATABASE_SSL", value: "require" },
+      { name: "AWS_REGION", value: Stack.of(this).region },
+      {
+        name: "EMBED_MODEL_ID",
+        value: process.env.EMBED_MODEL_ID ?? "amazon.titan-embed-text-v2:0",
+      },
+      { name: "EMBED_DIMS", value: process.env.EMBED_DIMS ?? "512" },
+      {
+        name: "ANSWER_MODEL_ID",
+        value: process.env.ANSWER_MODEL_ID ?? "us.anthropic.claude-sonnet-4-6",
+      },
+      { name: "LOG_LEVEL", value: process.env.LOG_LEVEL ?? "info" },
+    ];
+    // Cross-account Bedrock env, passed through only when configured (unset =
+    // single-account, so a plain re-deploy switches back).
+    if (bedrockAssumeRoleArn) {
+      runtimeEnvironmentVariables.push({
+        name: "BEDROCK_ASSUME_ROLE_ARN",
+        value: bedrockAssumeRoleArn,
+      });
+    }
+    if (bedrockExternalId) {
+      runtimeEnvironmentVariables.push({
+        name: "BEDROCK_ASSUME_ROLE_EXTERNAL_ID",
+        value: bedrockExternalId,
+      });
+    }
+    if (bedrockRegion) {
+      runtimeEnvironmentVariables.push({ name: "BEDROCK_REGION", value: bedrockRegion });
+    }
 
     const service = new apprunner.CfnService(this, "WebService", {
       serviceName: `${props.projectName}-web`,
@@ -83,26 +137,7 @@ export class WebStack extends Stack {
                 value: dbPassword.secretArn,
               },
             ],
-            runtimeEnvironmentVariables: [
-              { name: "NODE_ENV", value: "production" },
-              { name: "NEXT_TELEMETRY_DISABLED", value: "1" },
-              { name: "DATABASE_HOST", value: props.dbEndpointAddress },
-              { name: "DATABASE_PORT", value: props.dbEndpointPort },
-              { name: "DATABASE_NAME", value: "oracle" },
-              { name: "DATABASE_USER", value: "oracle" },
-              { name: "DATABASE_SSL", value: "require" },
-              { name: "AWS_REGION", value: Stack.of(this).region },
-              {
-                name: "EMBED_MODEL_ID",
-                value: process.env.EMBED_MODEL_ID ?? "amazon.titan-embed-text-v2:0",
-              },
-              { name: "EMBED_DIMS", value: process.env.EMBED_DIMS ?? "512" },
-              {
-                name: "ANSWER_MODEL_ID",
-                value: process.env.ANSWER_MODEL_ID ?? "us.anthropic.claude-sonnet-4-6",
-              },
-              { name: "LOG_LEVEL", value: process.env.LOG_LEVEL ?? "info" },
-            ],
+            runtimeEnvironmentVariables,
           },
         },
       },

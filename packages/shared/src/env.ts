@@ -60,6 +60,19 @@ export const envSchema = z
     // is INFERENCE_PROFILE-only and rejects on-demand InvokeModel).
     ANSWER_MODEL_ID: z.string().default("us.anthropic.claude-sonnet-4-6"),
 
+    // --- Cross-account Bedrock (optional; single-account by default) ---
+    // When the app's own account has no on-demand Bedrock quota, point Bedrock at
+    // a Bedrock-enabled account: the app's ambient identity (App Runner instance
+    // role in prod, AWS_PROFILE/SSO in dev) assumes BEDROCK_ASSUME_ROLE_ARN and
+    // invokes there, billed to that account. Leave it unset to use the app
+    // account's own Bedrock — unset it to switch back once local quota is granted.
+    BEDROCK_ASSUME_ROLE_ARN: optionalNonEmptyString,
+    // Optional sts:ExternalId, if the target role's trust policy requires one.
+    BEDROCK_ASSUME_ROLE_EXTERNAL_ID: optionalNonEmptyString,
+    // Region for model calls only (defaults to AWS_REGION). The cross-account
+    // target may have model access in a different region than the app/DB.
+    BEDROCK_REGION: optionalNonEmptyString,
+
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   })
   .superRefine((env, ctx) => {
