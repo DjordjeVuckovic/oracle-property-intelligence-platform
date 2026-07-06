@@ -121,6 +121,12 @@ export const propertyImprovements = pgTable(
     index("property_improvements_parcel_idx").on(table.parcelId),
     index("property_improvements_parcel_identifier_idx").on(table.parcelIdentifier),
     index("property_improvements_project_description_idx").on(table.projectDescription),
+    // Hot FK columns for the inquiry engine: nearly every inquiry GROUPs BY or
+    // JOINs on property_id (open-permit / renovation / cross-signal inquiries)
+    // or contractor_company_id (contractor inquiries, contractor detail, graph).
+    // Without these, aggregations sequential-scan the 112k-row permits table.
+    index("property_improvements_property_idx").on(table.propertyId),
+    index("property_improvements_contractor_idx").on(table.contractorCompanyId),
   ]
 );
 
@@ -155,6 +161,9 @@ export const inspections = pgTable(
     uniqueIndex("inspections_source_record_idx").on(table.sourceSystem, table.sourceRecordKey),
     index("inspections_permit_date_idx").on(table.permitNumber, table.completedDate),
     index("inspections_identifier_idx").on(table.inspectionIdentifier),
+    // The last-5y / neighbourhood-trend inquiries derive permit timing by joining
+    // inspections on property_improvement_id; index it so the join is not a scan.
+    index("inspections_permit_improvement_idx").on(table.propertyImprovementId),
   ]
 );
 

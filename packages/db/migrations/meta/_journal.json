@@ -15,6 +15,13 @@
       "when": 1783348612453,
       "tag": "0001_overrated_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783374060758,
+      "tag": "0002_add_permit_fk_indexes",
+      "breakpoints": true
     }
   ]
 }
