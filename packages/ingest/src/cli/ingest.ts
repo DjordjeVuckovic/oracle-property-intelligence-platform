@@ -36,22 +36,30 @@ const HELP = `oracle ingest — resumable IPFS -> Postgres pipeline for the Lee 
 Usage:
   pnpm --filter @oracle/ingest ingest -- <command> [flags]
 
-Commands:
-  fetch         download the consolidated per-property JSON from IPFS (file-only)
-  stage         normalize fetched records into staging tables (file-only)
-  migrate       apply database migrations
-  load          load staged tables + the parquet backbone into Postgres
+Prerequisites (not downloaded by this CLI):
+  - duckdb on PATH — writes the local parquet staging tables and streams them into Postgres.
+  - The backbone query-table parquet at .data/lee-county.parquet (229 MB, 511,695 rows).
+    Download it once from IPNS ORACLE_QUERY_TABLE_IPNS via any gateway, e.g.:
+      curl -L https://ipfs.filebase.io/ipns/<ORACLE_QUERY_TABLE_IPNS> -o .data/lee-county.parquet
+    Its property_cid column is the CID list that \`fetch\` consumes (--cid-file).
+
+Commands (fetch/stage are local-file only; only migrate/load/verify/embed* touch Postgres):
+  fetch         download per-property consolidated JSON from IPFS -> .data/consolidated/<cid>.json
+  stage         map consolidated JSON -> LOCAL parquet staging tables (duckdb),
+                one file per DB table -> .data/staging/<run-id>/tables/*.parquet  (does NOT write PG)
+  migrate       apply database migrations to Postgres
+  load          stream the staged parquet + the backbone parquet INTO Postgres (the only DB-writing step)
   verify        check row counts / invariants against the loaded DB
   embed-build   build RAG documents from the reconciled graph
   embed         generate embeddings (Bedrock Titan v2)
   embed-index   build the pgvector index
-  all           migrate + load + verify (against an already-staged run)
+  all           migrate + load + verify (assumes fetch + stage already ran)
 
 Flags:
   --run-id <id>                    fixed id makes a run resumable (default: run-<timestamp>)
   --data-dir <path>                default .data (or INGEST_DATA_DIR)
   --staging-dir <path>             default <data-dir>/staging/<run-id>
-  --cid-file <path>                CID list for fetch
+  --cid-file <path>                newline-delimited CID list for fetch (from the backbone's property_cid)
   --limit <n>                      cap records processed
   --database-url <url>             overrides DATABASE_URL
   --database-ssl <require|disable> pg TLS mode
