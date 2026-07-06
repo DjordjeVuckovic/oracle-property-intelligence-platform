@@ -1,0 +1,22 @@
+{
+  "name": "@oracle/infra",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "oracle-infra": "bin/oracle.ts"
+  },
+  "scripts": {
+    "synth": "cdk synth",
+    "deploy": "cdk deploy --all --require-approval never",
+    "bootstrap": "cdk bootstrap",
+    "destroy": "cdk destroy --all"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.261.0",
+    "constructs": "^10.6.0"
+  },
+  "devDependencies": {
+    "aws-cdk": "^2.1129.0"
+  }
+}

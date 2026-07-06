@@ -1,0 +1,14 @@
+{
+  "app": "tsx bin/oracle.ts",
+  "watch": {
+    "include": ["**"],
+    "exclude": ["README.md", "cdk*.json", "node_modules", "cdk.out"]
+  },
+  "context": {
+    "@aws-cdk/core:bootstrapQualifier": "oracle",
+    "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
+    "@aws-cdk/core:checkSecretUsage": true,
+    "@aws-cdk/aws-iam:minimizePolicies": true,
+    "@aws-cdk/core:validateSnapshotRemovalPolicy": true
+  }
+}
