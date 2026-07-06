@@ -1,14 +1,14 @@
 # dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.js
 
 # testing
-/coverage
+coverage/
 
 # next.js
-/.next/
-/out/
+.next/
+out/
 
 # production
 /build
@@ -38,3 +38,6 @@ next-env.d.ts
 .idea
 .vscode
 .cursor
+# ingest artifacts
+.data/
+.playwright-mcp/
