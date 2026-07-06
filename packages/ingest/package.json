@@ -7,16 +7,14 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "ingest": "tsx src/cli/ingest.ts",
-    "fetch": "tsx src/cli/ingest.ts stage-ipfs",
-    "backbone": "tsx src/cli/load-backbone.ts",
-    "load": "tsx src/cli/ingest.ts load-staging",
-    "verify": "tsx src/cli/ingest.ts verify-critical",
-    "migrate": "tsx src/cli/migrate.ts"
+    "ingest": "tsx src/cli/ingest.ts"
   },
   "dependencies": {
+    "@ai-sdk/amazon-bedrock": "^5.0.12",
+    "@aws-sdk/credential-providers": "^3.1079.0",
     "@oracle/db": "workspace:*",
     "@oracle/shared": "workspace:*",
+    "ai": "^7.0.15",
     "drizzle-orm": "^0.45.2",
     "pg": "^8.21.0",
     "pg-copy-streams": "^7.0.0"

@@ -1,121 +1,90 @@
-export type IngestCommand = "stage-ipfs" | "load-staging" | "verify-critical" | "full";
+import { join } from "node:path";
+
+// One coherent CLI surface. The pipeline is: fetch → stage → migrate → load →
+// verify, then embed-build → embed → embed-index for RAG. `all` runs
+// migrate+load+verify against an already-staged run.
+export const COMMANDS = [
+  "fetch",
+  "stage",
+  "migrate",
+  "load",
+  "verify",
+  "embed-build",
+  "embed",
+  "embed-index",
+  "all",
+] as const;
+
+export type IngestCommand = (typeof COMMANDS)[number];
 
 export type IngestArgs = {
   readonly command: IngestCommand;
   readonly runId: string;
   readonly dataDir: string;
-  readonly stagingDir: string;
-  readonly databaseUrl: string | null;
-  readonly databaseSsl: "require" | "disable";
+  readonly stagingRoot: string;
+  readonly cidFile: string;
   readonly limit: number | null;
-  readonly workers: number;
+  readonly databaseUrl: string | null;
+  readonly databaseSsl: "require" | "disable" | null;
 };
 
-function defaultRunId(): string {
-  return new Date().toISOString().replace(/[:.]/g, "-");
-}
+const FLAGS = new Set([
+  "--run-id",
+  "--data-dir",
+  "--staging-dir",
+  "--cid-file",
+  "--limit",
+  "--database-url",
+  "--database-ssl",
+]);
 
-function takeValue(argv: string[], index: number): { value: string; nextIndex: number } {
+function takeValue(argv: string[], index: number): string {
   const value = argv[index + 1];
-  if (value === undefined || value.startsWith("--")) {
+  if (value === undefined || FLAGS.has(value)) {
     throw new Error(`Missing value for ${argv[index]}`);
   }
-  return { value, nextIndex: index + 1 };
+  return value;
 }
 
-export function parseIngestArgv(argv = process.argv.slice(2)): IngestArgs {
-  while (argv[0] === "--") {
-    argv = argv.slice(1);
+export function parseIngestArgv(argv: string[] = process.argv.slice(2)): IngestArgs {
+  while (argv[0] === "--") argv = argv.slice(1);
+
+  const command = argv[0] as IngestCommand;
+  if (command === undefined || !COMMANDS.includes(command)) {
+    throw new Error(`Usage: ingest <${COMMANDS.join("|")}> [flags]`);
   }
 
-  const commandArg = argv[0];
-  if (commandArg === undefined) {
-    throw new Error("Missing ingest command. Use stage-ipfs, load-staging, verify-critical, or full.");
-  }
-
-  const command = commandArg as IngestCommand;
-  if (!["stage-ipfs", "load-staging", "verify-critical", "full"].includes(command)) {
-    throw new Error(`Unknown ingest command: ${commandArg}`);
-  }
-
-  let runId = defaultRunId();
-  let dataDir = process.env.INGEST_DATA_DIR ?? ".data";
-  let stagingDir = `${dataDir}/staging/${runId}`;
-  let databaseUrl = process.env.DATABASE_URL ?? null;
-  let databaseSsl: "require" | "disable" = (process.env.DATABASE_SSL as "require" | "disable" | undefined) ?? "require";
-  let limit: number | null = null;
-  let workers = Number(process.env.INGEST_STAGE_WORKERS ?? 6);
-
+  const raw = new Map<string, string>();
   for (let i = 1; i < argv.length; i += 1) {
-    const arg = argv[i];
-    if (arg === undefined) continue;
-    if (arg === "--run-id") {
-      const next = takeValue(argv, i);
-      runId = next.value;
-      stagingDir = `${dataDir}/staging/${runId}`;
-      i = next.nextIndex;
-      continue;
-    }
-    if (arg === "--data-dir") {
-      const next = takeValue(argv, i);
-      dataDir = next.value;
-      stagingDir = `${dataDir}/staging/${runId}`;
-      i = next.nextIndex;
-      continue;
-    }
-    if (arg === "--staging-dir") {
-      const next = takeValue(argv, i);
-      stagingDir = next.value;
-      i = next.nextIndex;
-      continue;
-    }
-    if (arg === "--database-url") {
-      const next = takeValue(argv, i);
-      databaseUrl = next.value;
-      i = next.nextIndex;
-      continue;
-    }
-    if (arg === "--database-ssl") {
-      const next = takeValue(argv, i);
-      if (next.value !== "require" && next.value !== "disable") {
-        throw new Error(`Invalid --database-ssl value: ${next.value}`);
-      }
-      databaseSsl = next.value;
-      i = next.nextIndex;
-      continue;
-    }
-    if (arg === "--limit") {
-      const next = takeValue(argv, i);
-      limit = Number(next.value);
-      if (!Number.isFinite(limit) || limit <= 0) {
-        throw new Error(`Invalid --limit value: ${next.value}`);
-      }
-      i = next.nextIndex;
-      continue;
-    }
-    if (arg === "--workers") {
-      const next = takeValue(argv, i);
-      workers = Number(next.value);
-      if (!Number.isFinite(workers) || workers <= 0) {
-        throw new Error(`Invalid --workers value: ${next.value}`);
-      }
-      i = next.nextIndex;
-      continue;
-    }
-    if (arg === "--help" || arg === "-h") {
-      throw new Error("Usage: ingest <stage-ipfs|load-staging|verify-critical|full> [--run-id ID] [--data-dir DIR] [--staging-dir DIR] [--database-url URL] [--database-ssl require|disable] [--limit N] [--workers N]");
-    }
-    throw new Error(`Unknown flag: ${arg}`);
+    const flag = argv[i];
+    if (flag === undefined) continue;
+    if (!FLAGS.has(flag)) throw new Error(`Unknown flag: ${flag}`);
+    raw.set(flag, takeValue(argv, i));
+    i += 1;
+  }
+
+  const dataDir = raw.get("--data-dir") ?? process.env.INGEST_DATA_DIR ?? ".data";
+  // Timestamp-based default; a fixed id (e.g. --run-id rds-1) makes a run resumable.
+  const runId = raw.get("--run-id") ?? `run-${Date.now()}`;
+  const stagingRoot = raw.get("--staging-dir") ?? join(dataDir, "staging", runId);
+  const limitRaw = raw.get("--limit");
+  const limit = limitRaw === undefined ? null : Number(limitRaw);
+  if (limit !== null && (!Number.isFinite(limit) || limit <= 0)) {
+    throw new Error(`Invalid --limit: ${limitRaw}`);
+  }
+  const ssl = raw.get("--database-ssl");
+  if (ssl !== undefined && ssl !== "require" && ssl !== "disable") {
+    throw new Error(`Invalid --database-ssl: ${ssl}`);
   }
 
   return {
     command,
     runId,
     dataDir,
-    stagingDir,
-    databaseUrl,
-    databaseSsl,
+    stagingRoot,
+    cidFile: raw.get("--cid-file") ?? join(dataDir, "enriched-cids.txt"),
     limit,
-    workers,
+    databaseUrl: raw.get("--database-url") ?? null,
+    databaseSsl: ssl ?? null,
   };
 }

@@ -32,6 +32,15 @@ export const envSchema = z.object({
   INGEST_FETCH_BACKOFF_MS: z.coerce.number().int().positive().default(2000),
   INGEST_FETCH_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
   INGEST_LOAD_BATCH_SIZE: z.coerce.number().int().positive().default(1000),
+  INGEST_STAGE_WORKERS: z.coerce.number().int().positive().default(6),
+
+  // --- Bedrock (embeddings + answers), via the Vercel AI SDK ---
+  AWS_REGION: z.string().default("us-east-2"),
+  EMBED_MODEL_ID: z.string().default("amazon.titan-embed-text-v2:0"),
+  EMBED_DIMS: z.coerce.number().int().positive().default(1024),
+  EMBED_BATCH: z.coerce.number().int().positive().default(96),
+  EMBED_CONCURRENCY: z.coerce.number().int().positive().default(4),
+  ANSWER_MODEL_ID: z.string().default("anthropic.claude-sonnet-4-6"),
 
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 });
