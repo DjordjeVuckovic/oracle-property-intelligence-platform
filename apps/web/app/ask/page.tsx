@@ -42,9 +42,12 @@ export default async function AskPage({
     try {
       result = await answerQuestion(question);
     } catch {
+      // answerQuestion already degrades throttled retrieval/generation to a
+      // cited fallback, so reaching here means an unexpected transient error
+      // (e.g. a DB hiccup) — report it honestly rather than blaming Bedrock.
       result = {
         answer:
-          "The Q&A path could not retrieve supporting records right now because the Bedrock request was throttled or failed. Try again shortly. No claims are made without retrieved source records.",
+          "The Q&A path hit an unexpected error and could not complete this request. Please try again in a moment. No claims are made without retrieved source records.",
         citations: [],
         evidence: [],
         mode: "unavailable",
