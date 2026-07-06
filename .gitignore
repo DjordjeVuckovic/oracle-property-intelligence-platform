@@ -1,5 +1,6 @@
 # dependencies
-node_modules/
+**/node_modules/
+**/cdk.out/
 /.pnp
 .pnp.js
 
@@ -41,3 +42,6 @@ next-env.d.ts
 # ingest artifacts
 .data/
 .playwright-mcp/
+
+# turbo
+.turbo/

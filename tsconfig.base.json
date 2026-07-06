@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "sourceMap": true,
+    "types": ["node"],
+    "paths": {
+      "@oracle/shared": ["./packages/shared/src/index.ts"],
+      "@oracle/shared/*": ["./packages/shared/src/*"],
+      "@oracle/db": ["./packages/db/src/index.ts"],
+      "@oracle/db/*": ["./packages/db/src/*"],
+      "@oracle/ingest": ["./packages/ingest/src/index.ts"],
+      "@oracle/ingest/*": ["./packages/ingest/src/*"]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+.turbo
+.next
+cdk.out
+pnpm-lock.yaml
+.data
+*.md
+apps/web
