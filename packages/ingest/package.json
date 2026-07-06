@@ -1,0 +1,28 @@
+{
+  "name": "@oracle/ingest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "ingest": "tsx src/cli/ingest.ts",
+    "fetch": "tsx src/cli/ingest.ts stage-ipfs",
+    "backbone": "tsx src/cli/load-backbone.ts",
+    "load": "tsx src/cli/ingest.ts load-staging",
+    "verify": "tsx src/cli/ingest.ts verify-critical",
+    "migrate": "tsx src/cli/migrate.ts"
+  },
+  "dependencies": {
+    "@oracle/db": "workspace:*",
+    "@oracle/shared": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.21.0",
+    "pg-copy-streams": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0",
+    "@types/pg-copy-streams": "^1.2.5"
+  }
+}
