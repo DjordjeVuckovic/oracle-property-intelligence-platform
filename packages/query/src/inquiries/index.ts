@@ -86,8 +86,8 @@ function contractorNameFilter(f: Filters): SQL | null {
 // Negative-reputation predicates. They reference the `brp`/`cqs` aliases the
 // contractor inquiries expose; the rating set + score bands come straight from
 // the AGENTS.md definition of "negative BBB".
-const negativeBbbPredicate = sql`(brp.bbb_rating in ('F','D','D-','D+','C-') or cqs.score_band in ('poor','fair','marginal'))`;
-const negativeOrComplaintPredicate = sql`(brp.bbb_rating in ('F','D','D-','D+','C-') or brp.complaint_count > 0 or cqs.score_band in ('poor','fair','marginal'))`;
+const negativeBbbPredicate = sql`(brp.bbb_rating in ('F','D','D-','D+','C-') or cqs.score_band in ('poor','marginal'))`;
+const negativeOrComplaintPredicate = sql`(brp.bbb_rating in ('F','D','D-','D+','C-') or brp.complaint_count > 0 or cqs.score_band in ('poor','marginal'))`;
 
 // ---------------------------------------------------------------------------
 // Row types (one per inquiry). `type` aliases (not interfaces) so they stay
