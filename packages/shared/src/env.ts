@@ -69,6 +69,15 @@ export const envSchema = z
     //             returns real, cited records, so semantic Q&A never hard-fails.
     RETRIEVAL_MODE: z.enum(["hybrid", "lexical"]).default("hybrid"),
 
+    // Hybrid-retrieval fusion tunables (documented defaults; every value is
+    // overridable via env per the no-hardcoded-values contract):
+    //   score = RAG_VECTOR_WEIGHT * cosine + RAG_FTS_WEIGHT * full-text rank.
+    // 0.6/0.4 favors semantic similarity while keeping lexical recall; RAG_K is
+    // the fan-out (rows retrieved to ground an answer).
+    RAG_VECTOR_WEIGHT: z.coerce.number().min(0).max(1).default(0.6),
+    RAG_FTS_WEIGHT: z.coerce.number().min(0).max(1).default(0.4),
+    RAG_K: z.coerce.number().int().positive().default(12),
+
     // --- Cross-account Bedrock (optional; single-account by default) ---
     // When the app's own account has no on-demand Bedrock quota, point Bedrock at
     // a Bedrock-enabled account: the app's ambient identity (App Runner instance

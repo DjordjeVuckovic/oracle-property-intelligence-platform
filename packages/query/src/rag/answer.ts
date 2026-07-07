@@ -14,7 +14,6 @@ import { retrieve, type RetrievalMode } from "./retrieve.js";
 // text, and hand back the citations + raw evidence so the UI can prove every
 // claim. Retrieval and generation both run through the Vercel AI SDK.
 
-const RETRIEVAL_K = 12;
 const DEFAULT_INQUIRY_FILTERS: Filters = {
   page: 1,
   pageSize: 12,
@@ -399,7 +398,7 @@ export async function answerQuestion(question: string): Promise<Answer> {
   const route = routeCanonicalQuestion(question);
   if (route) return answerViaInquiry(route);
 
-  const { citations, mode: retrievalMode } = await retrieve(question, { k: RETRIEVAL_K });
+  const { citations, mode: retrievalMode } = await retrieve(question);
   const noRecords = {
     answer:
       "No supporting records were found for this question in the Lee County " +

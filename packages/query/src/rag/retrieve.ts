@@ -10,12 +10,9 @@ import type { Citation } from "../provenance.js";
 // similarity with Postgres full-text rank in a single SQL so ranking is
 // deterministic and the two signals are combined once, server-side.
 
-// Fusion weights and default fan-out. These are the only tunables here; they
-// live as named constants (rather than env) because this module cannot amend
-// the shared env contract — the values mirror the documented RAG defaults.
-const VECTOR_WEIGHT = 0.6;
-const FTS_WEIGHT = 0.4;
-const DEFAULT_K = 12;
+// Fusion weights and default fan-out are env-driven (RAG_VECTOR_WEIGHT /
+// RAG_FTS_WEIGHT / RAG_K) with documented defaults in the shared env schema —
+// no hardcoded tunables here.
 
 export type HybridSearchOptions = {
   entityType?: string;
@@ -114,7 +111,7 @@ export function toOrTsQuery(query: string): string {
 // recall; an empty term set returns no rows (the caller answers "no supporting
 // records" honestly).
 export async function ftsSearch(query: string, opts?: HybridSearchOptions): Promise<Citation[]> {
-  const k = opts?.k ?? DEFAULT_K;
+  const k = opts?.k ?? loadEnv().RAG_K;
   const entityType = opts?.entityType;
   const orQuery = toOrTsQuery(query);
   if (orQuery.length === 0) return [];
@@ -156,7 +153,8 @@ async function vectorFtsSearch(
   query: string,
   opts?: HybridSearchOptions
 ): Promise<Citation[]> {
-  const k = opts?.k ?? DEFAULT_K;
+  const env = loadEnv();
+  const k = opts?.k ?? env.RAG_K;
   const entityType = opts?.entityType;
   const db = getDb();
   const entityFilter = entityType ? sql`and entity_type = ${entityType}` : sql``;
@@ -185,7 +183,7 @@ async function vectorFtsSearch(
       from scored
     )
     select entity_type, entity_id, title, source_url,
-      (${VECTOR_WEIGHT} * coalesce(vnorm, 0) + ${FTS_WEIGHT} * coalesce(fnorm, 0)) as score
+      (${env.RAG_VECTOR_WEIGHT} * coalesce(vnorm, 0) + ${env.RAG_FTS_WEIGHT} * coalesce(fnorm, 0)) as score
     from norm
     order by score desc
     limit ${k}
@@ -217,7 +215,10 @@ export type RetrievalResult = { citations: Citation[]; mode: RetrievalMode };
  *     serves automatically when the embedding is unavailable. Either way the
  *     results are real, cited records — retrieval never hard-fails.
  */
-export async function retrieve(query: string, opts?: HybridSearchOptions): Promise<RetrievalResult> {
+export async function retrieve(
+  query: string,
+  opts?: HybridSearchOptions
+): Promise<RetrievalResult> {
   const env = loadEnv();
   if (env.RETRIEVAL_MODE === "lexical") {
     return { citations: await ftsSearch(query, opts), mode: "lexical" };
