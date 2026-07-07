@@ -160,7 +160,7 @@ export async function getProperty(propertyId: string): Promise<PropertyDetail | 
   if (coreRow === undefined) return null;
 
   const [ownership, taxes, permits, occupancy, contractors] = await Promise.all([
-    db.execute(sql`select owned_by, ownership_percentage, owner_occupied_indicator, date_acquired, date_sold, source_system
+    db.execute(sql`select distinct owned_by, ownership_percentage, owner_occupied_indicator, date_acquired, date_sold, source_system
       from ownerships where property_id = ${propertyId} order by date_acquired desc nulls last`),
     db.execute(sql`select tax_year, property_assessed_value_amount, property_market_value_amount, property_land_amount, yearly_tax_amount
       from taxes where property_id = ${propertyId} order by tax_year desc nulls last limit 12`),
