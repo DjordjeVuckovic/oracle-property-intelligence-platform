@@ -38,9 +38,13 @@ else
   echo "==> created role $ROLE_NAME"
 fi
 
+# Claude models on Bedrock are AWS Marketplace subscriptions: InvokeModel checks
+# the caller's Marketplace entitlement, so the invoking role needs the
+# aws-marketplace view/subscribe actions in addition to bedrock:InvokeModel —
+# without them InvokeModel returns AccessDeniedException.
 aws --profile "$CROSS_AWS_PROFILE" iam put-role-policy --role-name "$ROLE_NAME" \
   --policy-name bedrock-invoke \
-  --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["bedrock:InvokeModel","bedrock:InvokeModelWithResponseStream"],"Resource":"*"}]}'
+  --policy-document '{"Version":"2012-10-17","Statement":[{"Sid":"BedrockInvoke","Effect":"Allow","Action":["bedrock:InvokeModel","bedrock:InvokeModelWithResponseStream"],"Resource":"*"},{"Sid":"MarketplaceModelAccess","Effect":"Allow","Action":["aws-marketplace:ViewSubscriptions","aws-marketplace:Subscribe"],"Resource":"*"}]}'
 
 ROLE_ARN="arn:aws:iam::${ME_ACCOUNT_ID}:role/${ROLE_NAME}"
 echo ""
