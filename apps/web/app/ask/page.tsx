@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -30,30 +31,97 @@ function entityHref(entityType: string, entityId: string): string {
   return base ? `${base}/${entityId}` : "#";
 }
 
+// The answer is generated (retrieval + a grounded LLM call) and can take several
+// seconds. Render it inside a <Suspense> boundary so the page shell (header +
+// form) streams to the browser immediately and the answer streams in when ready
+// — navigation never blocks on the model, so the page stays fast and never
+// times out, and the demo shows an instant page with a streaming answer.
+async function AnswerSection({ question }: { question: string }): Promise<React.ReactElement> {
+  let result: Answer;
+  try {
+    result = await answerQuestion(question);
+  } catch {
+    // answerQuestion already degrades throttled retrieval/generation to a cited
+    // fallback, so reaching here means an unexpected transient error (e.g. a DB
+    // hiccup) — report it honestly rather than blaming Bedrock.
+    result = {
+      answer:
+        "The Q&A path hit an unexpected error and could not complete this request. Please try again in a moment. No claims are made without retrieved source records.",
+      citations: [],
+      evidence: [],
+      mode: "unavailable",
+    };
+  }
+
+  return (
+    <div className="mt-8 space-y-6">
+      <Card>
+        <CardContent className="p-6">
+          <div className="mb-2 flex items-center gap-2">
+            <Badge variant="ink">{result.mode}</Badge>
+            <span className="text-xs text-muted-foreground">
+              grounded in {result.citations.length} records
+            </span>
+          </div>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{result.answer}</p>
+        </CardContent>
+      </Card>
+
+      {result.citations.length > 0 ? (
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Citations
+          </h2>
+          <div className="mt-3 grid gap-3">
+            {result.citations.map((c) => (
+              <CitationCard
+                key={`${c.entityType}-${c.entityId}`}
+                citation={{
+                  title: c.label,
+                  entityHref: entityHref(c.entityType, c.entityId),
+                  sourceUrl: sourceHref(c.sourceUrl) ?? "#",
+                  sourceSystem: c.entityType,
+                  score: c.score,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Streamed placeholder shown while the answer is being retrieved + generated.
+function AnswerPending(): React.ReactElement {
+  return (
+    <div className="mt-8">
+      <Card>
+        <CardContent className="p-6">
+          <div className="mb-3 flex items-center gap-2">
+            <Badge variant="ink">generating</Badge>
+            <span className="text-xs text-muted-foreground">
+              retrieving records and composing a cited answer…
+            </span>
+          </div>
+          <div className="space-y-2" aria-hidden>
+            <div className="h-3 w-3/4 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-full animate-pulse rounded bg-muted" />
+            <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default async function AskPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string }>;
-}) {
+}): Promise<React.ReactElement> {
   const { q } = await searchParams;
   const question = q?.trim();
-  let result: Answer | null = null;
-  if (question) {
-    try {
-      result = await answerQuestion(question);
-    } catch {
-      // answerQuestion already degrades throttled retrieval/generation to a
-      // cited fallback, so reaching here means an unexpected transient error
-      // (e.g. a DB hiccup) — report it honestly rather than blaming Bedrock.
-      result = {
-        answer:
-          "The Q&A path hit an unexpected error and could not complete this request. Please try again in a moment. No claims are made without retrieved source records.",
-        citations: [],
-        evidence: [],
-        mode: "unavailable",
-      };
-    }
-  }
 
   return (
     <div className="mx-auto max-w-[840px] px-6 pb-16">
@@ -89,42 +157,10 @@ export default async function AskPage({
         </div>
       </form>
 
-      {result ? (
-        <div className="mt-8 space-y-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="mb-2 flex items-center gap-2">
-                <Badge variant="ink">{result.mode}</Badge>
-                <span className="text-xs text-muted-foreground">
-                  grounded in {result.citations.length} records
-                </span>
-              </div>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">{result.answer}</p>
-            </CardContent>
-          </Card>
-
-          {result.citations.length > 0 ? (
-            <div>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                Citations
-              </h2>
-              <div className="mt-3 grid gap-3">
-                {result.citations.map((c) => (
-                  <CitationCard
-                    key={`${c.entityType}-${c.entityId}`}
-                    citation={{
-                      title: c.label,
-                      entityHref: entityHref(c.entityType, c.entityId),
-                      sourceUrl: sourceHref(c.sourceUrl) ?? "#",
-                      sourceSystem: c.entityType,
-                      score: c.score,
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
+      {question ? (
+        <Suspense key={question} fallback={<AnswerPending />}>
+          <AnswerSection question={question} />
+        </Suspense>
       ) : (
         <p className="mt-8 text-sm text-muted-foreground">
           Ask a question about Lee County properties, permits, contractors, or businesses. Every
