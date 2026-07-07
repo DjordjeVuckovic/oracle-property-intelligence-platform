@@ -40,8 +40,8 @@ Public IPFS, no credentials:
 
 ## Stack
 
-- Turborepo + pnpm workspaces: `apps/web` (Next.js frontend, Amplify Hosting), `apps/api` (tRPC on Lambda behind API Gateway HTTP API v2), `packages/db` (Drizzle schema + migrations), `packages/ingest` (resumable CLI pipeline), `packages/shared` (Zod contracts, filter grammar).
-- AWS `us-east-2`, CDK is the only IaC (`cdk deploy`; every resource tagged `project_name`): RDS Postgres 18 + pgvector, API stack, Amplify app, Secrets Manager for DB/LLM credentials. pgvector instead of the kit's OpenSearch RAG store is a cost-driven, documented deviation.
+- Turborepo + pnpm workspaces: `apps/web` (Next.js App-Router frontend; server components query the data layer directly — no separate API tier), `packages/db` (Drizzle schema + migrations), `packages/query` (views, inquiries, hybrid RAG), `packages/ingest` (resumable CLI pipeline), `packages/shared` (Zod env/contracts, filter grammar).
+- AWS `us-east-2`, CDK is the only IaC (`cdk deploy`; every resource tagged `project_name`): RDS Postgres 18 + pgvector, App Runner web service, Secrets Manager for DB credentials. Three deliberate, documented deviations from the kit reference path (rationale in the PR body): Next.js RSC over tRPC-on-Lambda, App Runner over Amplify Hosting, and pgvector over the kit's OpenSearch RAG store.
 - TypeScript ESM, strict; no `any`/`as any`. Zod validates env, config, and API inputs (tRPC input schemas).
 - No hardcoded values. Every tunable — model ids, embedding dims, thresholds, batch sizes, concurrency, gateway lists, IPNS names, connection settings — lives in Zod-validated env/config with a documented default in `.env.example`; secrets only via env/Secrets Manager, never in code or logs. New behavior and risky paths ship behind env-driven feature flags (default off/safe), not commented-out code.
 - Drizzle over Postgres. Deterministic UUIDv5 IDs keyed on source identifiers; ingestion is idempotent.
@@ -49,7 +49,7 @@ Public IPFS, no credentials:
 - Retrieval is hybrid (pgvector cosine + Postgres FTS); citations carry entity id, source URL, score.
 - Canonical inquiries are deterministic SQL routed from natural language; RAG is the semantic fallback.
 - Views: Property, Tenant, Business, Contractor + inquiry runner + Q&A. Every entity page deep-linkable; semantic markup, no bot-hostile guards.
-- Powertools Logger/Tracer/Metrics on API Lambdas (no `console.log`); Vitest colocated `*.test.ts`; `aws-sdk-client-mock`; Prettier + ESLint.
+- Structured logging via pino (`packages/shared/src/logger.ts`; no `console.log`); Vitest colocated `*.test.ts`; `aws-sdk-client-mock`; Prettier + ESLint.
 
 ## Testing
 
