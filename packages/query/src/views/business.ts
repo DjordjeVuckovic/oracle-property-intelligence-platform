@@ -125,27 +125,34 @@ export async function listBusinesses(
   };
 }
 
-export async function getBusiness(businessRegistrationId: string): Promise<BusinessDetail | null> {
+export async function getBusiness(id: string): Promise<BusinessDetail | null> {
   const db = getDb();
+  // The id may be a business_registration_id (from the /businesses list) or a
+  // company_id (inquiry rows link a business by its company). Resolve either to the
+  // concrete registration, then key every sub-query off that registration id.
   const core = await db.execute(sql`
     select br.business_registration_id, br.entity_name, br.document_number, br.status,
       br.filing_type, br.filed_date, br.fei_number, br.last_transaction_date,
       br.source_system, br.source_artifact_uri as source_url
     from business_registrations br
-    where br.business_registration_id = ${businessRegistrationId}
+    where br.business_registration_id = ${id} or br.company_id = ${id}
+    order by br.updated_at desc nulls last
+    limit 1
   `);
   if (core.rows.length === 0) return null;
+  const coreRow = core.rows[0] as BusinessCore;
+  const regId = coreRow.business_registration_id;
 
   const [officers, addresses, relatedProperties, permits] = await Promise.all([
     // Ownership information: registered officers from the Sunbiz filing.
     db.execute(sql`select name, title, party_role, source_system, source_artifact_uri as source_url
       from business_registration_parties
-      where business_registration_id = ${businessRegistrationId} and party_role = 'OFFICER'
+      where business_registration_id = ${regId} and party_role = 'OFFICER'
       order by officer_ordinal nulls last`),
     // Locations: the addresses carried on the registration (principal, mailing, ...).
     db.execute(sql`select address_role, line_1, line_2, city, state, zip, source_system, source_artifact_uri as source_url
       from business_registration_addresses
-      where business_registration_id = ${businessRegistrationId}
+      where business_registration_id = ${regId}
       order by address_role`),
     // Related properties: the properties this business is inferred to occupy.
     db.execute(sql`select distinct p.property_id, p.parcel_identifier,
@@ -155,7 +162,7 @@ export async function getBusiness(businessRegistrationId: string): Promise<Busin
       join properties p on p.property_id = o.property_id
       join addresses a on a.address_id = p.address_id
       join parcels pc on pc.parcel_id = p.parcel_id
-      where o.business_registration_id = ${businessRegistrationId}`),
+      where o.business_registration_id = ${regId}`),
     // Related permits/projects: permits on the occupied properties.
     db.execute(sql`select pi.property_improvement_id, pi.property_id, pi.permit_number,
         pi.improvement_type, pi.improvement_status, pi.completion_date, pi.project_description,
@@ -163,13 +170,13 @@ export async function getBusiness(businessRegistrationId: string): Promise<Busin
       from property_improvements pi
       join properties p on p.property_id = pi.property_id
       where pi.property_id in (
-        select property_id from occupancies where business_registration_id = ${businessRegistrationId} and property_id is not null
+        select property_id from occupancies where business_registration_id = ${regId} and property_id is not null
       )
       order by pi.completion_date desc nulls last`),
   ]);
 
   return {
-    ...(core.rows[0] as BusinessCore),
+    ...coreRow,
     officers: officers.rows as BusinessOfficerRow[],
     addresses: addresses.rows as BusinessAddressRow[],
     relatedProperties: relatedProperties.rows as BusinessPropertyRow[],

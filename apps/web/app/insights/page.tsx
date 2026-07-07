@@ -62,7 +62,7 @@ function entityHref(entityType: string, entityId: string): string {
   return base ? `${base}/${entityId}` : "#";
 }
 
-function renderTable(rows: InquiryRow[]) {
+function renderTable(rows: InquiryRow[], entityType?: string) {
   if (rows.length === 0) {
     return <EmptyState title="No rows returned" hint="This inquiry produced no matches." />;
   }
@@ -95,9 +95,13 @@ function renderTable(rows: InquiryRow[]) {
                   );
                 }
                 if (column === "company_id" && typeof value === "string") {
+                  // A company id backs both contractor and business inquiries; route it to
+                  // the view that matches THIS inquiry's entity so a business row doesn't
+                  // link to the contractor page (and vice-versa).
+                  const base = entityType === "business" ? "/businesses" : "/contractors";
                   return (
                     <TableCell key={column}>
-                      <Link className="underline underline-offset-2" href={`/contractors/${value}`}>
+                      <Link className="underline underline-offset-2" href={`${base}/${value}`}>
                         {text(value)}
                       </Link>
                     </TableCell>
@@ -202,7 +206,7 @@ export default async function InsightsPage({
                 </CardContent>
               </Card>
 
-              {renderTable(result?.rows ?? [])}
+              {renderTable(result?.rows ?? [], result?.citations?.[0]?.entityType)}
 
               {result ? (
                 <Pager page={filters.page} pages={pages} total={result.total} params={sp} />
